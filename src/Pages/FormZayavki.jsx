@@ -62,7 +62,9 @@ export default function FormZayavki() {
             const form = evt.currentTarget;
             const formData = new FormData(form);
             const photoFile = formData.get("device_photo");
-            const selectedKsaItem = ksa.find((item) => item.id_ksa === selectedKsa);
+            const selectedKsaItem = ksa.find(
+                (item) => item.id_ksa === selectedKsa,
+            );
             let photoPayload = null;
 
             if (photoFile && photoFile.size > 0) {
@@ -111,7 +113,8 @@ export default function FormZayavki() {
 
             const deviceTypeValue = formData.get("device_type");
             setSuccessData({
-                deviceType: deviceTypeLabels[deviceTypeValue] || deviceTypeValue,
+                deviceType:
+                    deviceTypeLabels[deviceTypeValue] || deviceTypeValue,
                 deviceSerial: formData.get("device_serial"),
                 ksa:
                     selectedKsaItem?.nomer_ksa ||
@@ -203,7 +206,7 @@ export default function FormZayavki() {
                 encType="multipart/form-data"
                 onSubmit={handleSubmit}
             >
-                <div className="fixed-grid has-3-cols z-form-grid">
+                <div className="fixed-grid has-1-cols z-form-grid">
                     <div className="grid">
                         <div className="field">
                             <label className="label">Регион</label>
@@ -340,8 +343,6 @@ export default function FormZayavki() {
                                 />
                             </div>
                         </div>
-                    </div>
-                    <div className="grid">
                         <div className="field">
                             <label className="label">
                                 Контактное лицо для обращения
@@ -356,8 +357,6 @@ export default function FormZayavki() {
                                 />
                             </div>
                         </div>
-                    </div>
-                    <div className="grid">
                         <div className="field">
                             <div className="control">
                                 <button
