@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ExcelJS from "exceljs";
 import { fetchWithAuth } from "../utils/auth";
 
@@ -17,7 +17,12 @@ export default function AllZayavki() {
     const [decisionError, setDecisionError] = useState("");
     const [deletingId, setDeletingId] = useState("");
     const [isExporting, setIsExporting] = useState(false);
+    const [searchText, setSearchText] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState("");
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
+    const PAGE_SIZE = 10;
 
     const deviceTypeLabels = {
         terminal: "Терминал",
@@ -27,11 +32,15 @@ export default function AllZayavki() {
         other: "Другое",
     };
 
-    useEffect(() => {
-        async function getAllZayavki() {
+    const getAllZayavki = useCallback(
+        async (silent = false) => {
             try {
-                setIsLoading(true);
-                setError("");
+                if (silent) {
+                    setIsRefreshing(true);
+                } else {
+                    setIsLoading(true);
+                    setError("");
+                }
 
                 const response = await fetchWithAuth(`${apiUrl}/zayavki`, {
                     method: "GET",
@@ -43,15 +52,32 @@ export default function AllZayavki() {
 
                 const data = await response.json();
                 setZayavki(data);
+                setLastUpdated(new Date().toLocaleString("ru-RU"));
             } catch (err) {
-                setError(err.message || "Ошибка загрузки заявок");
+                if (!silent) {
+                    setError(err.message || "Ошибка загрузки заявок");
+                } else {
+                    console.error("[AllZayavki] auto refresh error:", err);
+                }
             } finally {
-                setIsLoading(false);
+                if (silent) {
+                    setIsRefreshing(false);
+                } else {
+                    setIsLoading(false);
+                }
             }
-        }
+        },
+        [apiUrl],
+    );
 
-        getAllZayavki();
-    }, [apiUrl]);
+    useEffect(() => {
+        getAllZayavki(false);
+        const timerId = setInterval(() => {
+            getAllZayavki(true);
+        }, 30000);
+
+        return () => clearInterval(timerId);
+    }, [getAllZayavki]);
 
     function getRowHighlight(item) {
         const decision = (item.decision || "").trim();
@@ -353,18 +379,65 @@ ${photoBlock}
         );
     }
 
-    const filteredZayavki = zayavki.filter((item) => {
-        if (statusFilter === "resolved") return isResolved(item);
-        if (statusFilter === "unresolved") return !isResolved(item);
-        return true;
-    });
+    const filteredZayavki = useMemo(() => {
+        const query = searchText.trim().toLowerCase();
+
+        return zayavki.filter((item) => {
+            const matchByStatus =
+                statusFilter === "resolved"
+                    ? isResolved(item)
+                    : statusFilter === "unresolved"
+                      ? !isResolved(item)
+                      : true;
+
+            if (!matchByStatus) return false;
+            if (!query) return true;
+
+            const searchable = [
+                item.device_serial,
+                item.device_name,
+                item.contact_person,
+                item.ksa_number,
+                item.ksa_name,
+                item.ksa_id,
+                item.ksa_address,
+                item.region_name,
+                item.decision,
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            return searchable.includes(query);
+        });
+    }, [zayavki, statusFilter, searchText]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, searchText]);
+
+    const totalPages = Math.max(
+        1,
+        Math.ceil(filteredZayavki.length / PAGE_SIZE),
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    const paginatedZayavki = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filteredZayavki.slice(start, start + PAGE_SIZE);
+    }, [filteredZayavki, currentPage, PAGE_SIZE]);
 
     return (
         <section className="container all-zayavki-page">
             <h1 className="title is-4">Все заявки</h1>
 
             <div className="field mb-4">
-                <label className="label">Фильтр</label>
+                <label className="label">Фильтр и поиск</label>
                 <div className="control">
                     <div className="is-flex is-align-items-center is-gap-3 zayavki-toolbar">
                         <div className="select">
@@ -379,6 +452,24 @@ ${photoBlock}
                                 <option value="unresolved">Нерешенные</option>
                             </select>
                         </div>
+                        <input
+                            className="input zayavki-search"
+                            type="text"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            placeholder="Поиск: КСА, серийный номер, контакт..."
+                        />
+                        <button
+                            type="button"
+                            className={`button is-light ${
+                                isRefreshing ? "is-loading" : ""
+                            }`}
+                            onClick={() => getAllZayavki(true)}
+                            disabled={isRefreshing}
+                            title="Обновить список"
+                        >
+                            Обновить
+                        </button>
                         <button
                             type="button"
                             className={`button is-link is-light ${
@@ -390,112 +481,263 @@ ${photoBlock}
                             Вывод в Excel
                         </button>
                     </div>
+                    <p className="help mt-2">
+                        Показано: {paginatedZayavki.length} из{" "}
+                        {filteredZayavki.length} (всего {zayavki.length})
+                        {lastUpdated ? ` • обновлено: ${lastUpdated}` : ""}
+                    </p>
                 </div>
             </div>
 
             {filteredZayavki.length === 0 ? (
-                <p>Заявок пока нет.</p>
+                <p>
+                    {searchText.trim()
+                        ? "По вашему поиску ничего не найдено."
+                        : "Заявок пока нет."}
+                </p>
             ) : (
-                <div className="table-container zayavki-table-container">
-                    <table className="table is-fullwidth is-striped is-hoverable">
-                        <thead>
-                            <tr>
-                                <th>Дата</th>
-                                <th>Подробно</th>
-                                <th>Изображение</th>
-                                <th>КСА</th>
-                                <th>Тип устройства</th>
-                                <th>Наименование</th>
-                                <th>Серийный номер</th>
-                                <th>Контактное лицо</th>
-                                <th>Решение</th>
-                                <th>Удалить</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredZayavki.map((item) => (
-                                <tr
-                                    key={item._id}
-                                    style={{
-                                        cursor: "pointer",
-                                        ...getRowHighlight(item),
-                                    }}
-                                    onClick={() => openDecisionModal(item)}
-                                >
-                                    <td>
+                <>
+                    <div className="table-container zayavki-table-container zayavki-desktop-view">
+                        <table className="table is-fullwidth is-striped is-hoverable">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Подробно</th>
+                                    <th>Изображение</th>
+                                    <th>КСА</th>
+                                    <th>Тип устройства</th>
+                                    <th>Наименование</th>
+                                    <th>Серийный номер</th>
+                                    <th>Контактное лицо</th>
+                                    <th>Решение</th>
+                                    <th>Удалить</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedZayavki.map((item) => (
+                                    <tr
+                                        key={item._id}
+                                        style={{
+                                            cursor: "pointer",
+                                            ...getRowHighlight(item),
+                                        }}
+                                        onClick={() => openDecisionModal(item)}
+                                    >
+                                        <td>
+                                            {item.createdAt
+                                                ? new Date(
+                                                      item.createdAt,
+                                                  ).toLocaleString("ru-RU")
+                                                : "-"}
+                                        </td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className="button is-small is-light"
+                                                onClick={(evt) =>
+                                                    openDetailsModal(item, evt)
+                                                }
+                                                title="Подробно"
+                                            >
+                                                i
+                                            </button>
+                                        </td>
+                                        <td>
+                                            {item.device_photo?.data_base64 ? (
+                                                <img
+                                                    src={
+                                                        item.device_photo
+                                                            .data_base64
+                                                    }
+                                                    alt="Фото устройства"
+                                                    style={{
+                                                        width: "64px",
+                                                        height: "64px",
+                                                        objectFit: "cover",
+                                                        borderRadius: "6px",
+                                                    }}
+                                                />
+                                            ) : (
+                                                "-"
+                                            )}
+                                        </td>
+                                        <td>
+                                            {item.ksa_number ||
+                                                item.ksa_name ||
+                                                item.ksa_id ||
+                                                "-"}
+                                        </td>
+                                        <td>
+                                            {deviceTypeLabels[item.device_type] ||
+                                                item.device_type ||
+                                                "-"}
+                                        </td>
+                                        <td>{item.device_name || "-"}</td>
+                                        <td>{item.device_serial || "-"}</td>
+                                        <td>{item.contact_person || "-"}</td>
+                                        <td>{item.decision || "-"}</td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className={`button is-small is-danger is-light ${
+                                                    deletingId === item._id
+                                                        ? "is-loading"
+                                                        : ""
+                                                }`}
+                                                onClick={(evt) =>
+                                                    deleteZayavka(item, evt)
+                                                }
+                                                disabled={deletingId === item._id}
+                                            >
+                                                Удалить
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="zayavki-mobile-view">
+                        {paginatedZayavki.map((item) => (
+                            <article
+                                key={item._id}
+                                className="zayavka-card"
+                                style={getRowHighlight(item)}
+                            >
+                                <div className="zayavka-card-head">
+                                    <p className="zayavka-card-date">
                                         {item.createdAt
                                             ? new Date(
                                                   item.createdAt,
                                               ).toLocaleString("ru-RU")
                                             : "-"}
-                                    </td>
-                                    <td>
-                                        <button
-                                            type="button"
-                                            className="button is-small is-light"
-                                            onClick={(evt) =>
-                                                openDetailsModal(item, evt)
-                                            }
-                                            title="Подробно"
-                                        >
-                                            i
-                                        </button>
-                                    </td>
-                                    <td>
-                                        {item.device_photo?.data_base64 ? (
-                                            <img
-                                                src={
-                                                    item.device_photo
-                                                        .data_base64
-                                                }
-                                                alt="Фото устройства"
-                                                style={{
-                                                    width: "64px",
-                                                    height: "64px",
-                                                    objectFit: "cover",
-                                                    borderRadius: "6px",
-                                                }}
-                                            />
-                                        ) : (
-                                            "-"
-                                        )}
-                                    </td>
-                                    <td>
+                                    </p>
+                                    <span className="tag is-light">
                                         {item.ksa_number ||
                                             item.ksa_name ||
                                             item.ksa_id ||
                                             "-"}
-                                    </td>
-                                    <td>
-                                        {deviceTypeLabels[item.device_type] ||
-                                            item.device_type ||
-                                            "-"}
-                                    </td>
-                                    <td>{item.device_name || "-"}</td>
-                                    <td>{item.device_serial || "-"}</td>
-                                    <td>{item.contact_person || "-"}</td>
-                                    <td>{item.decision || "-"}</td>
-                                    <td>
-                                        <button
-                                            type="button"
-                                            className={`button is-small is-danger is-light ${
-                                                deletingId === item._id
-                                                    ? "is-loading"
-                                                    : ""
-                                            }`}
-                                            onClick={(evt) =>
-                                                deleteZayavka(item, evt)
-                                            }
-                                            disabled={deletingId === item._id}
-                                        >
-                                            Удалить
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                    </span>
+                                </div>
+
+                                <div className="zayavka-card-content">
+                                    {item.device_photo?.data_base64 ? (
+                                        <img
+                                            src={item.device_photo.data_base64}
+                                            alt="Фото устройства"
+                                            className="zayavka-card-image"
+                                        />
+                                    ) : (
+                                        <div className="zayavka-card-image-placeholder">
+                                            Нет фото
+                                        </div>
+                                    )}
+
+                                    <div className="zayavka-card-fields">
+                                        <p>
+                                            <strong>Тип:</strong>{" "}
+                                            {deviceTypeLabels[
+                                                item.device_type
+                                            ] ||
+                                                item.device_type ||
+                                                "-"}
+                                        </p>
+                                        <p>
+                                            <strong>Устройство:</strong>{" "}
+                                            {item.device_name || "-"}
+                                        </p>
+                                        <p>
+                                            <strong>Серийный:</strong>{" "}
+                                            {item.device_serial || "-"}
+                                        </p>
+                                        <p>
+                                            <strong>Контакт:</strong>{" "}
+                                            {item.contact_person || "-"}
+                                        </p>
+                                        <p>
+                                            <strong>Решение:</strong>{" "}
+                                            {item.decision || "-"}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="zayavka-card-actions">
+                                    <button
+                                        type="button"
+                                        className="button is-small is-light"
+                                        onClick={(evt) =>
+                                            openDetailsModal(item, evt)
+                                        }
+                                    >
+                                        Подробно
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="button is-small is-link is-light"
+                                        onClick={() => openDecisionModal(item)}
+                                    >
+                                        Решение
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`button is-small is-danger is-light ${
+                                            deletingId === item._id
+                                                ? "is-loading"
+                                                : ""
+                                        }`}
+                                        onClick={(evt) =>
+                                            deleteZayavka(item, evt)
+                                        }
+                                        disabled={deletingId === item._id}
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+
+                    {totalPages > 1 ? (
+                        <nav
+                            className="pagination is-centered mt-4"
+                            role="navigation"
+                            aria-label="pagination"
+                        >
+                            <button
+                                type="button"
+                                className="pagination-previous"
+                                onClick={() =>
+                                    setCurrentPage((prev) =>
+                                        Math.max(1, prev - 1),
+                                    )
+                                }
+                                disabled={currentPage === 1}
+                            >
+                                Назад
+                            </button>
+                            <button
+                                type="button"
+                                className="pagination-next"
+                                onClick={() =>
+                                    setCurrentPage((prev) =>
+                                        Math.min(totalPages, prev + 1),
+                                    )
+                                }
+                                disabled={currentPage === totalPages}
+                            >
+                                Вперед
+                            </button>
+                            <ul className="pagination-list">
+                                <li>
+                                    <span className="pagination-link is-current">
+                                        Стр. {currentPage} из {totalPages}
+                                    </span>
+                                </li>
+                            </ul>
+                        </nav>
+                    ) : null}
+                </>
             )}
 
             <div className={`modal ${isModalOpen ? "is-active" : ""}`}>

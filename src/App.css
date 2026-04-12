@@ -264,6 +264,81 @@ a.active {
     white-space: nowrap;
 }
 
+.all-zayavki-page .zayavki-search {
+    min-width: 280px;
+    flex: 1 1 320px;
+}
+
+.all-zayavki-page .zayavki-desktop-view {
+    display: block;
+}
+
+.all-zayavki-page .zayavki-mobile-view {
+    display: none;
+}
+
+.all-zayavki-page .zayavka-card {
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.all-zayavki-page .zayavka-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.all-zayavki-page .zayavka-card-date {
+    font-size: 13px;
+    margin: 0;
+}
+
+.all-zayavki-page .zayavka-card-content {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 10px;
+}
+
+.all-zayavki-page .zayavka-card-image {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.all-zayavki-page .zayavka-card-image-placeholder {
+    width: 72px;
+    height: 72px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    text-align: center;
+    padding: 4px;
+}
+
+.all-zayavki-page .zayavka-card-fields p {
+    margin: 0 0 6px;
+    font-size: 13px;
+    line-height: 1.25;
+}
+
+.all-zayavki-page .zayavka-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.all-zayavki-page .zayavka-card-actions .button {
+    flex: 1 1 0;
+}
+
 @media (max-width: 1023px) {
     .container {
         padding-left: 12px;
@@ -307,6 +382,11 @@ a.active {
         font-size: 13px;
     }
 
+    .all-zayavki-page .zayavki-search {
+        min-width: 100%;
+        flex-basis: 100%;
+    }
+
     .all-zayavki-page .table .button.is-small {
         padding-left: 8px;
         padding-right: 8px;
@@ -331,18 +411,20 @@ a.active {
         width: 100%;
     }
 
-    .all-zayavki-page .table {
-        font-size: 12px;
+    .all-zayavki-page .zayavki-desktop-view {
+        display: none;
     }
 
-    .all-zayavki-page .table th,
-    .all-zayavki-page .table td {
-        padding: 6px;
+    .all-zayavki-page .zayavki-mobile-view {
+        display: block;
     }
 
-    .all-zayavki-page .table img {
-        width: 48px !important;
-        height: 48px !important;
+    .all-zayavki-page .zayavka-card-actions {
+        flex-wrap: wrap;
+    }
+
+    .all-zayavki-page .zayavka-card-actions .button {
+        flex: 1 1 100%;
     }
 
     .modal-card {
