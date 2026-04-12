@@ -592,7 +592,9 @@ ${photoBlock}
             <div className="mb-4">
                 <span className="has-text-grey">
                     {user && user.name ? (
-                        <>Пользователь: <strong>{user.name}</strong></>
+                        <>
+                            Пользователь: <strong>{user.name}</strong>
+                        </>
                     ) : (
                         "Пользователь не определён"
                     )}
