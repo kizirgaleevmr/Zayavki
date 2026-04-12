@@ -360,13 +360,13 @@ ${photoBlock}
     });
 
     return (
-        <section className="container">
+        <section className="container all-zayavki-page">
             <h1 className="title is-4">Все заявки</h1>
 
             <div className="field mb-4">
                 <label className="label">Фильтр</label>
                 <div className="control">
-                    <div className="is-flex is-align-items-center is-gap-3">
+                    <div className="is-flex is-align-items-center is-gap-3 zayavki-toolbar">
                         <div className="select">
                             <select
                                 value={statusFilter}
@@ -396,7 +396,7 @@ ${photoBlock}
             {filteredZayavki.length === 0 ? (
                 <p>Заявок пока нет.</p>
             ) : (
-                <div className="table-container">
+                <div className="table-container zayavki-table-container">
                     <table className="table is-fullwidth is-striped is-hoverable">
                         <thead>
                             <tr>

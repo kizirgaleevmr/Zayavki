@@ -22,7 +22,7 @@ function App() {
     return (
         <section className="container">
             <nav
-                className="navbar px-6 is-dark"
+                className="navbar px-6 is-dark app-navbar"
                 role="navigation"
                 aria-label="main navigation"
             >
@@ -35,8 +35,8 @@ function App() {
                         />
                     </div>
                 </div>
-                <div className="navbar-menu">
-                    <div className="navbar-end">
+                <div className="navbar-menu app-navbar-menu">
+                    <div className="navbar-end app-nav-links">
                         <div className="navbar-item">
                             <NavLink to="/zayavki">
                                 {({ isActive }) => (

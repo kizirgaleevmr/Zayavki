@@ -206,4 +206,157 @@ a.active {
 
 .logo {
     display: block;
+    width: 180px;
+    max-width: 100%;
+    height: auto;
+}
+
+.app-navbar {
+    border-radius: 12px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.app-navbar .navbar-menu {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.app-navbar .navbar-end {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.form-zayavki-page .z-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.form-zayavki-page .z-form-grid > .grid {
+    margin: 0;
+}
+
+.form-zayavki-page .select,
+.form-zayavki-page .select select,
+.form-zayavki-page .input,
+.form-zayavki-page .textarea,
+.form-zayavki-page .button {
+    width: 100%;
+}
+
+.all-zayavki-page .zayavki-table-container {
+    overflow-x: auto;
+}
+
+.all-zayavki-page table td,
+.all-zayavki-page table th {
+    vertical-align: middle;
+}
+
+.all-zayavki-page .zayavki-toolbar {
+    flex-wrap: wrap;
+}
+
+.all-zayavki-page .zayavki-toolbar .button {
+    white-space: nowrap;
+}
+
+@media (max-width: 1023px) {
+    .container {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .app-navbar {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .app-navbar .navbar-brand {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .app-navbar .navbar-menu {
+        display: block;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .app-navbar .navbar-end {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0;
+    }
+
+    .app-navbar .navbar-item {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    .form-zayavki-page .z-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .all-zayavki-page .table {
+        font-size: 13px;
+    }
+
+    .all-zayavki-page .table .button.is-small {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+@media (max-width: 767px) {
+    .logo {
+        width: 130px;
+    }
+
+    .form-zayavki-page .z-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .all-zayavki-page .zayavki-toolbar {
+        align-items: stretch !important;
+    }
+
+    .all-zayavki-page .zayavki-toolbar > .select,
+    .all-zayavki-page .zayavki-toolbar > .button {
+        width: 100%;
+    }
+
+    .all-zayavki-page .table {
+        font-size: 12px;
+    }
+
+    .all-zayavki-page .table th,
+    .all-zayavki-page .table td {
+        padding: 6px;
+    }
+
+    .all-zayavki-page .table img {
+        width: 48px !important;
+        height: 48px !important;
+    }
+
+    .modal-card {
+        width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+        margin: 12px auto;
+    }
+
+    .modal-card-foot {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .modal-card-foot .button {
+        flex: 1 1 100%;
+    }
 }

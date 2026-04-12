@@ -196,14 +196,14 @@ export default function FormZayavki() {
     }, [apiUrl, selectedRegion]);
 
     return (
-        <section className="container">
+        <section className="container form-zayavki-page">
             <form
                 action="#"
                 method="post"
                 encType="multipart/form-data"
                 onSubmit={handleSubmit}
             >
-                <div className="fixed-grid has-3-cols">
+                <div className="fixed-grid has-3-cols z-form-grid">
                     <div className="grid">
                         <div className="field">
                             <label className="label">Регион</label>
