@@ -591,7 +591,18 @@ ${photoBlock}
                                         <td>{item.device_serial || "-"}</td>
                                         <td>{item.device_issue || "-"}</td>
                                         <td>{item.contact_person || "-"}</td>
-                                        <td>{item.decision || "-"}</td>
+                                        <td>
+                                            <div>{item.decision || "-"}</div>
+                                            <div className="is-size-7 has-text-grey">
+                                                {item.decision_date
+                                                    ? new Date(
+                                                          item.decision_date,
+                                                      ).toLocaleDateString(
+                                                          "ru-RU",
+                                                      )
+                                                    : "-"}
+                                            </div>
+                                        </td>
                                         <td>
                                             <button
                                                 type="button"
@@ -678,6 +689,14 @@ ${photoBlock}
                                         <p>
                                             <strong>Решение:</strong>{" "}
                                             {item.decision || "-"}
+                                        </p>
+                                        <p>
+                                            <strong>Дата решения:</strong>{" "}
+                                            {item.decision_date
+                                                ? new Date(
+                                                      item.decision_date,
+                                                  ).toLocaleDateString("ru-RU")
+                                                : "-"}
                                         </p>
                                     </div>
                                 </div>
