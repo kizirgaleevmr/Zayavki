@@ -594,6 +594,7 @@ ${photoBlock}
                                         <td>
                                             <div>{item.decision || "-"}</div>
                                             <div className="is-size-7 has-text-grey">
+                                                Дата решения:{" "}
                                                 {item.decision_date
                                                     ? new Date(
                                                           item.decision_date,
