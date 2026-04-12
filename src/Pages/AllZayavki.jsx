@@ -168,9 +168,12 @@ export default function AllZayavki() {
         setIsDetailsModalOpen(true);
 
         try {
-            const response = await fetchWithAuth(`${apiUrl}/zayavki/${item._id}`, {
-                method: "GET",
-            });
+            const response = await fetchWithAuth(
+                `${apiUrl}/zayavki/${item._id}`,
+                {
+                    method: "GET",
+                },
+            );
             const result = await response.json();
             if (!response.ok) {
                 throw new Error(
@@ -669,7 +672,9 @@ ${photoBlock}
                                         onClick={() => openDecisionModal(item)}
                                     >
                                         <td>
-                                            {item._id ? String(item._id).slice(-6) : "-"}
+                                            {item._id
+                                                ? String(item._id).slice(-6)
+                                                : "-"}
                                         </td>
                                         <td>
                                             {item.createdAt
@@ -708,7 +713,9 @@ ${photoBlock}
                                                 "-"}
                                         </td>
                                         <td>
-                                            {deviceTypeLabels[item.device_type] ||
+                                            {deviceTypeLabels[
+                                                item.device_type
+                                            ] ||
                                                 item.device_type ||
                                                 "-"}
                                         </td>
@@ -828,7 +835,10 @@ ${photoBlock}
                                             : "-"}
                                     </p>
                                     <span className="tag is-info">
-                                        № {item._id ? String(item._id).slice(-6) : "-"}
+                                        №{" "}
+                                        {item._id
+                                            ? String(item._id).slice(-6)
+                                            : "-"}
                                     </span>
                                     <span className="tag is-light">
                                         {item.ksa_number ||
@@ -1001,12 +1011,20 @@ ${photoBlock}
                     </header>
                     <section className="modal-card-body">
                         {selectedZayavka ? (
-                            <p className="mb-3">
-                                Заявка:{" "}
-                                <strong>
-                                    {selectedZayavka.device_serial || "-"}
-                                </strong>
-                            </p>
+                            <>
+                                <p className="mb-2">
+                                    <span className="has-text-weight-semibold">Номер заявки:</span>{" "}
+                                    <span className="tag is-info is-medium" style={{marginLeft: 4}}>
+                                        № {selectedZayavka._id ? String(selectedZayavka._id).slice(-6) : "-"}
+                                    </span>
+                                </p>
+                                <p className="mb-3">
+                                    <span className="has-text-weight-semibold">Номер КСА:</span>{" "}
+                                    <span>
+                                        {selectedZayavka.ksa_number || "-"}
+                                    </span>
+                                </p>
+                            </>
                         ) : null}
                         <div className="field">
                             <label className="label">Решение</label>
@@ -1187,7 +1205,9 @@ ${photoBlock}
                 <div className="modal-background" onClick={closeEditModal} />
                 <div className="modal-card">
                     <header className="modal-card-head">
-                        <p className="modal-card-title">Редактирование заявки</p>
+                        <p className="modal-card-title">
+                            Редактирование заявки
+                        </p>
                         <button
                             className="delete"
                             aria-label="close"
@@ -1214,7 +1234,9 @@ ${photoBlock}
                                             }))
                                         }
                                     >
-                                        <option value="terminal">Терминал</option>
+                                        <option value="terminal">
+                                            Терминал
+                                        </option>
                                         <option value="printer">Принтер</option>
                                         <option value="scanner">Сканер</option>
                                         <option value="pc">ПК</option>
