@@ -29,14 +29,9 @@ function App() {
                 role="navigation"
                 aria-label="main navigation"
             >
+                <img className="logo" src={logo} alt="Logo" />
                 <div className="navbar-brand">
-                    <div className="navbar-item">
-                        <img
-                            className="logo"
-                            src={logo}
-                            alt="Logo"
-                        />
-                    </div>
+                    <div className="navbar-item"></div>
                 </div>
                 <div className="navbar-menu app-navbar-menu">
                     <div className="navbar-end app-nav-links">
