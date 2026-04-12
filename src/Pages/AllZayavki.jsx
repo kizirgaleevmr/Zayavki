@@ -522,6 +522,7 @@ ${photoBlock}
                                     <th>Тип устройства</th>
                                     <th>Наименование</th>
                                     <th>Серийный номер</th>
+                                    <th>Неисправность</th>
                                     <th>Контактное лицо</th>
                                     <th>Решение</th>
                                     <th>Удалить</th>
@@ -588,6 +589,7 @@ ${photoBlock}
                                         </td>
                                         <td>{item.device_name || "-"}</td>
                                         <td>{item.device_serial || "-"}</td>
+                                        <td>{item.device_issue || "-"}</td>
                                         <td>{item.contact_person || "-"}</td>
                                         <td>{item.decision || "-"}</td>
                                         <td>
@@ -664,6 +666,10 @@ ${photoBlock}
                                         <p>
                                             <strong>Серийный:</strong>{" "}
                                             {item.device_serial || "-"}
+                                        </p>
+                                        <p>
+                                            <strong>Неисправность:</strong>{" "}
+                                            {item.device_issue || "-"}
                                         </p>
                                         <p>
                                             <strong>Контакт:</strong>{" "}
