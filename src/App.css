@@ -386,6 +386,83 @@ a.active {
 }
 
 @media (max-width: 1023px) {
+    html,
+    body,
+    #root {
+        background: #0f172a;
+        color: #e5e7eb;
+    }
+
+    .container,
+    .title,
+    .subtitle,
+    .label,
+    p,
+    .help {
+        color: #e5e7eb;
+    }
+
+    .app-navbar {
+        background: #111827 !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .app-navbar .navbar-item a,
+    .app-navbar .navbar-item span,
+    .app-logout-button {
+        color: #f8fafc;
+    }
+
+    .form-zayavki-page .input,
+    .form-zayavki-page .select select,
+    .form-zayavki-page .textarea,
+    .all-zayavki-page .input,
+    .all-zayavki-page .select select,
+    .modal-card .input,
+    .modal-card .textarea,
+    .form-control,
+    .box {
+        background: #1f2937;
+        color: #f8fafc;
+        border-color: #334155;
+    }
+
+    .modal-card {
+        background: #111827;
+    }
+
+    .modal-card-head,
+    .modal-card-foot {
+        background: #1f2937;
+        border-color: #334155;
+    }
+
+    .modal-card-title,
+    .modal-card-body p,
+    .modal-card-body strong,
+    .modal-card-body .label {
+        color: #e5e7eb;
+    }
+
+    .all-zayavki-page .table {
+        background: #f8fafc;
+        color: #111827;
+        border-radius: 10px;
+    }
+
+    .all-zayavki-page .table th,
+    .all-zayavki-page .table td {
+        color: #111827;
+    }
+
+    .all-zayavki-page .pagination-link,
+    .all-zayavki-page .pagination-previous,
+    .all-zayavki-page .pagination-next {
+        background: #1f2937;
+        border-color: #334155;
+        color: #e5e7eb;
+    }
+
     .app-navbar .navbar-item a,
     .app-navbar .navbar-item span {
         font-size: 17px;
@@ -532,6 +609,13 @@ a.active {
 
     .all-zayavki-page .zayavka-card-actions {
         flex-wrap: wrap;
+    }
+
+    .all-zayavki-page .zayavka-card,
+    .all-zayavki-page .zayavka-card p,
+    .all-zayavki-page .zayavka-card strong,
+    .all-zayavki-page .zayavka-card .tag {
+        color: #1f2937;
     }
 
     .all-zayavki-page .zayavka-card-date,
