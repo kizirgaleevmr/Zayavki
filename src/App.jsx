@@ -1,6 +1,7 @@
 import "./App.css";
 import { NavLink, Outlet } from "react-router-dom";
 import { clearAuthSession, getAuthHeaders } from "./utils/auth";
+import logo from "./assets/logo2.png";
 function App() {
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
 
@@ -30,7 +31,7 @@ function App() {
                     <div className="navbar-item">
                         <img
                             className="logo"
-                            src="/src/assets/logo2.png"
+                            src={logo}
                             alt="Logo"
                         />
                     </div>
