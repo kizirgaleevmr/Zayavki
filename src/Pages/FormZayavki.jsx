@@ -62,6 +62,7 @@ export default function FormZayavki() {
             const form = evt.currentTarget;
             const formData = new FormData(form);
             const photoFile = formData.get("device_photo");
+            const selectedKsaItem = ksa.find((item) => item.id_ksa === selectedKsa);
             let photoPayload = null;
 
             if (photoFile && photoFile.size > 0) {
@@ -71,12 +72,22 @@ export default function FormZayavki() {
                     mime_type: photoFile.type,
                     data_base64: dataUrl,
                 };
+            } else {
+                photoPayload = {
+                    file_name: "нету фото",
+                    mime_type: "",
+                    data_base64: "",
+                };
             }
 
             const payload = {
                 region_id: selectedRegion.id,
                 region_code: selectedRegion.code,
                 ksa_id: selectedKsa,
+                ksa_address:
+                    selectedKsaItem?.ksa_adress ||
+                    selectedKsaItem?.ksa_address ||
+                    "",
                 device_type: formData.get("device_type"),
                 device_name: formData.get("device_name"),
                 device_serial: formData.get("device_serial"),
@@ -99,7 +110,6 @@ export default function FormZayavki() {
                 throw new Error(result.message || "Ошибка отправки заявки");
             }
 
-            const selectedKsaItem = ksa.find((item) => item.id_ksa === selectedKsa);
             const deviceTypeValue = formData.get("device_type");
             setSuccessData({
                 deviceType: deviceTypeLabels[deviceTypeValue] || deviceTypeValue,
@@ -311,7 +321,6 @@ export default function FormZayavki() {
                                     type="file"
                                     name="device_photo"
                                     accept="image/*"
-                                    required
                                 />
                             </div>
                         </div>

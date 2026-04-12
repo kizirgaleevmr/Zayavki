@@ -104,6 +104,7 @@ const zayavkaScheme = new Schema(
         region_id: { type: String, required: true },
         region_code: { type: String },
         ksa_id: { type: String, required: true },
+        ksa_address: { type: String },
         device_type: { type: String, required: true },
         device_name: { type: String, required: true },
         device_serial: { type: String, required: true },
@@ -168,6 +169,68 @@ async function fetchZayavkiSafe() {
     }
 
     return [];
+}
+
+async function deleteZayavkaSafe(id) {
+    const idString = String(id);
+
+    // 1) Try model collection first
+    const deletedByModel = await Zayavka.findByIdAndDelete(idString);
+    if (deletedByModel) {
+        return { deleted: true, source: "model:zayavka" };
+    }
+
+    // 2) Fallback collections (same list as in fetchZayavkiSafe)
+    const db = mongoose.connection.db;
+    const collections = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
+    const filters = [{ _id: idString }];
+
+    if (mongoose.Types.ObjectId.isValid(idString)) {
+        filters.push({ _id: new mongoose.Types.ObjectId(idString) });
+    }
+
+    // Extra fallback for legacy documents where custom id fields were used.
+    filters.push({ id: idString });
+    filters.push({ id_note: idString });
+    filters.push({ id_zayavka: idString });
+
+    for (const collectionName of collections) {
+        for (const filter of filters) {
+            const result = await db.collection(collectionName).deleteOne(filter);
+            if (result?.deletedCount > 0) {
+                return {
+                    deleted: true,
+                    source: `collection:${collectionName}`,
+                };
+            }
+        }
+    }
+
+    return { deleted: false, source: "" };
+}
+
+async function deleteZayavkaHandler(req, res) {
+    try {
+        const { id } = req.params;
+        const { deleted, source } = await deleteZayavkaSafe(id);
+
+        if (!deleted) {
+            return res.status(404).json({
+                message: "Заявка не найдена",
+            });
+        }
+
+        console.log(`[DELETE /zayavki/:id] deleted from ${source}`);
+        return res.status(200).json({
+            message: "Заявка удалена",
+            id,
+        });
+    } catch (error) {
+        console.error("[DELETE /zayavki/:id] error:", error);
+        return res.status(500).json({
+            message: "Ошибка удаления заявки",
+        });
+    }
 }
 
 async function main() {
@@ -246,6 +309,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             region_id,
             region_code,
             ksa_id,
+            ksa_address,
             device_type,
             device_name,
             device_serial,
@@ -272,6 +336,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             region_id,
             region_code: region_code || "",
             ksa_id,
+            ksa_address: ksa_address || "",
             device_type,
             device_name,
             device_serial,
@@ -317,6 +382,11 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
                 region_name: regionItem?.reg_naimenovanie || "",
                 ksa_number: ksaItem?.nomer_ksa || "",
                 ksa_name: ksaItem?.ksa_naimenovanie || "",
+                ksa_address:
+                    zayavka.ksa_address ||
+                    ksaItem?.ksa_adress ||
+                    ksaItem?.ksa_address ||
+                    "",
             };
         });
 
@@ -328,6 +398,9 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
         });
     }
 });
+
+app.delete("/zayavki/:id", authMiddleware, deleteZayavkaHandler);
+app.post("/zayavki/:id/delete", authMiddleware, deleteZayavkaHandler);
 
 app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
     try {
