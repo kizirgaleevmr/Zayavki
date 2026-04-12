@@ -209,6 +209,51 @@ async function deleteZayavkaSafe(id) {
     return { deleted: false, source: "" };
 }
 
+async function updateZayavkaSafe(id, updateData) {
+    const idString = String(id);
+
+    const updatedByModel = await Zayavka.findByIdAndUpdate(
+        idString,
+        { $set: updateData },
+        { new: true },
+    ).lean();
+    if (updatedByModel) {
+        return { updated: true, source: "model:zayavka", doc: updatedByModel };
+    }
+
+    const db = mongoose.connection.db;
+    const collections = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
+    const filters = [{ _id: idString }];
+
+    if (mongoose.Types.ObjectId.isValid(idString)) {
+        filters.push({ _id: new mongoose.Types.ObjectId(idString) });
+    }
+
+    filters.push({ id: idString });
+    filters.push({ id_note: idString });
+    filters.push({ id_zayavka: idString });
+
+    for (const collectionName of collections) {
+        for (const filter of filters) {
+            const result = await db.collection(collectionName).findOneAndUpdate(
+                filter,
+                { $set: updateData },
+                { returnDocument: "after" },
+            );
+            const updatedDoc = result?.value || result || null;
+            if (updatedDoc && updatedDoc._id) {
+                return {
+                    updated: true,
+                    source: `collection:${collectionName}`,
+                    doc: updatedDoc,
+                };
+            }
+        }
+    }
+
+    return { updated: false, source: "", doc: null };
+}
+
 async function deleteZayavkaHandler(req, res) {
     try {
         const { id } = req.params;
@@ -401,6 +446,59 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
 
 app.delete("/zayavki/:id", authMiddleware, deleteZayavkaHandler);
 app.post("/zayavki/:id/delete", authMiddleware, deleteZayavkaHandler);
+
+app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            device_type,
+            device_name,
+            device_serial,
+            device_issue,
+            contact_person,
+            ksa_address,
+        } = req.body;
+
+        if (
+            !String(device_type || "").trim() ||
+            !String(device_name || "").trim() ||
+            !String(device_serial || "").trim() ||
+            !String(device_issue || "").trim() ||
+            !String(contact_person || "").trim()
+        ) {
+            return res.status(400).json({
+                message: "Не заполнены обязательные поля для редактирования",
+            });
+        }
+
+        const updateData = {
+            device_type: String(device_type).trim(),
+            device_name: String(device_name).trim(),
+            device_serial: String(device_serial).trim(),
+            device_issue: String(device_issue).trim(),
+            contact_person: String(contact_person).trim(),
+            ksa_address: String(ksa_address || "").trim(),
+        };
+
+        const { updated, doc } = await updateZayavkaSafe(id, updateData);
+
+        if (!updated || !doc) {
+            return res.status(404).json({
+                message: "Заявка не найдена",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Заявка обновлена",
+            zayavka: doc,
+        });
+    } catch (error) {
+        console.error("[PATCH /zayavki/:id] error:", error);
+        return res.status(500).json({
+            message: "Ошибка обновления заявки",
+        });
+    }
+});
 
 app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
     try {

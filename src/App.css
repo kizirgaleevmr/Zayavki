@@ -310,6 +310,20 @@ a.active {
     white-space: nowrap;
 }
 
+.all-zayavki-page .zayavki-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.all-zayavki-page .z-action-btn {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    padding: 0;
+}
+
 .all-zayavki-page .zayavki-search {
     min-width: 280px;
     flex: 1 1 320px;

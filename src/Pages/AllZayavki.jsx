@@ -15,6 +15,18 @@ export default function AllZayavki() {
     const [decisionDate, setDecisionDate] = useState("");
     const [isSavingDecision, setIsSavingDecision] = useState(false);
     const [decisionError, setDecisionError] = useState("");
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingZayavka, setEditingZayavka] = useState(null);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [editError, setEditError] = useState("");
+    const [editForm, setEditForm] = useState({
+        device_type: "",
+        device_name: "",
+        device_serial: "",
+        device_issue: "",
+        contact_person: "",
+        ksa_address: "",
+    });
     const [deletingId, setDeletingId] = useState("");
     const [isExporting, setIsExporting] = useState(false);
     const [searchText, setSearchText] = useState("");
@@ -136,6 +148,35 @@ export default function AllZayavki() {
         setDetailsZayavka(null);
     }
 
+    function openEditModal(item, evt) {
+        evt.stopPropagation();
+        setEditingZayavka(item);
+        setEditForm({
+            device_type: item.device_type || "",
+            device_name: item.device_name || "",
+            device_serial: item.device_serial || "",
+            device_issue: item.device_issue || "",
+            contact_person: item.contact_person || "",
+            ksa_address: item.ksa_address || "",
+        });
+        setEditError("");
+        setIsEditModalOpen(true);
+    }
+
+    function closeEditModal() {
+        setIsEditModalOpen(false);
+        setEditingZayavka(null);
+        setEditError("");
+        setEditForm({
+            device_type: "",
+            device_name: "",
+            device_serial: "",
+            device_issue: "",
+            contact_person: "",
+            ksa_address: "",
+        });
+    }
+
     function printDetails() {
         if (!detailsZayavka) return;
 
@@ -244,6 +285,61 @@ ${photoBlock}
         }
     }
 
+    async function saveEdit() {
+        if (!editingZayavka?._id) return;
+
+        try {
+            setIsSavingEdit(true);
+            setEditError("");
+
+            const payload = {
+                device_type: editForm.device_type,
+                device_name: editForm.device_name,
+                device_serial: editForm.device_serial,
+                device_issue: editForm.device_issue,
+                contact_person: editForm.contact_person,
+                ksa_address: editForm.ksa_address,
+            };
+
+            const response = await fetchWithAuth(
+                `${apiUrl}/zayavki/${editingZayavka._id}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+            );
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "Не удалось обновить заявку");
+            }
+
+            setZayavki((prev) =>
+                prev.map((item) =>
+                    item._id === editingZayavka._id
+                        ? { ...item, ...result.zayavka }
+                        : item,
+                ),
+            );
+
+            if (detailsZayavka?._id === editingZayavka._id) {
+                setDetailsZayavka((prev) => ({ ...prev, ...result.zayavka }));
+            }
+            if (selectedZayavka?._id === editingZayavka._id) {
+                setSelectedZayavka((prev) => ({ ...prev, ...result.zayavka }));
+            }
+
+            closeEditModal();
+        } catch (err) {
+            setEditError(err.message || "Ошибка обновления заявки");
+        } finally {
+            setIsSavingEdit(false);
+        }
+    }
+
     async function deleteZayavka(item, evt) {
         evt.stopPropagation();
         if (!item?._id) return;
@@ -281,6 +377,9 @@ ${photoBlock}
             }
             if (detailsZayavka?._id === item._id) {
                 closeDetailsModal();
+            }
+            if (editingZayavka?._id === item._id) {
+                closeEditModal();
             }
         } catch (err) {
             setError(err.message || "Ошибка удаления заявки");
@@ -516,7 +615,6 @@ ${photoBlock}
                             <thead>
                                 <tr>
                                     <th>Дата</th>
-                                    <th>Подробно</th>
                                     <th>Изображение</th>
                                     <th>КСА</th>
                                     <th>Тип устройства</th>
@@ -525,7 +623,7 @@ ${photoBlock}
                                     <th>Неисправность</th>
                                     <th>Контактное лицо</th>
                                     <th>Решение</th>
-                                    <th>Удалить</th>
+                                    <th>Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -544,18 +642,6 @@ ${photoBlock}
                                                       item.createdAt,
                                                   ).toLocaleString("ru-RU")
                                                 : "-"}
-                                        </td>
-                                        <td>
-                                            <button
-                                                type="button"
-                                                className="button is-small is-light"
-                                                onClick={(evt) =>
-                                                    openDetailsModal(item, evt)
-                                                }
-                                                title="Подробно"
-                                            >
-                                                i
-                                            </button>
                                         </td>
                                         <td>
                                             {item.device_photo?.data_base64 ? (
@@ -605,20 +691,81 @@ ${photoBlock}
                                             </div>
                                         </td>
                                         <td>
-                                            <button
-                                                type="button"
-                                                className={`button is-small is-danger is-light ${
-                                                    deletingId === item._id
-                                                        ? "is-loading"
-                                                        : ""
-                                                }`}
-                                                onClick={(evt) =>
-                                                    deleteZayavka(item, evt)
-                                                }
-                                                disabled={deletingId === item._id}
-                                            >
-                                                Удалить
-                                            </button>
+                                            <div className="zayavki-row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="button is-small is-light is-rounded z-action-btn"
+                                                    onClick={(evt) =>
+                                                        openDetailsModal(
+                                                            item,
+                                                            evt,
+                                                        )
+                                                    }
+                                                    title="Подробно"
+                                                    aria-label="Подробно"
+                                                >
+                                                    <svg
+                                                        viewBox="0 0 24 24"
+                                                        width="14"
+                                                        height="14"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path
+                                                            fill="currentColor"
+                                                            d="M11 7h2V5h-2zm0 12h2V9h-2zm1-17A10 10 0 1 0 12 22 10 10 0 0 0 12 2zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="button is-small is-link is-light is-rounded z-action-btn"
+                                                    onClick={(evt) =>
+                                                        openEditModal(item, evt)
+                                                    }
+                                                    title="Редактировать"
+                                                    aria-label="Редактировать"
+                                                >
+                                                    <svg
+                                                        viewBox="0 0 24 24"
+                                                        width="14"
+                                                        height="14"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path
+                                                            fill="currentColor"
+                                                            d="m3 17.25 9.06-9.06 3.75 3.75L6.75 21H3zM20.71 7.04a1 1 0 0 0 0-1.41L18.37 3.3a1 1 0 0 0-1.41 0l-1.59 1.59 3.75 3.75z"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`button is-small is-danger is-light is-rounded z-action-btn ${
+                                                        deletingId === item._id
+                                                            ? "is-loading"
+                                                            : ""
+                                                    }`}
+                                                    onClick={(evt) =>
+                                                        deleteZayavka(item, evt)
+                                                    }
+                                                    disabled={
+                                                        deletingId === item._id
+                                                    }
+                                                    title="Удалить"
+                                                    aria-label="Удалить"
+                                                >
+                                                    <svg
+                                                        viewBox="0 0 24 24"
+                                                        width="14"
+                                                        height="14"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path
+                                                            fill="currentColor"
+                                                            d="M9 3h6l1 2h4v2H4V5h4zm1 6h2v9h-2zm4 0h2v9h-2zM7 9h2v9H7z"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -718,6 +865,15 @@ ${photoBlock}
                                         onClick={() => openDecisionModal(item)}
                                     >
                                         Решение
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="button is-small is-info is-light"
+                                        onClick={(evt) =>
+                                            openEditModal(item, evt)
+                                        }
+                                    >
+                                        Редактировать
                                     </button>
                                     <button
                                         type="button"
@@ -968,6 +1124,155 @@ ${photoBlock}
                             onClick={closeDetailsModal}
                         >
                             Закрыть
+                        </button>
+                    </footer>
+                </div>
+            </div>
+
+            <div className={`modal ${isEditModalOpen ? "is-active" : ""}`}>
+                <div className="modal-background" onClick={closeEditModal} />
+                <div className="modal-card">
+                    <header className="modal-card-head">
+                        <p className="modal-card-title">Редактирование заявки</p>
+                        <button
+                            className="delete"
+                            aria-label="close"
+                            type="button"
+                            onClick={closeEditModal}
+                        />
+                    </header>
+                    <section className="modal-card-body">
+                        {editingZayavka ? (
+                            <p className="mb-3">
+                                ID: <strong>{editingZayavka._id}</strong>
+                            </p>
+                        ) : null}
+                        <div className="field">
+                            <label className="label">Тип устройства</label>
+                            <div className="control">
+                                <div className="select is-fullwidth">
+                                    <select
+                                        value={editForm.device_type}
+                                        onChange={(e) =>
+                                            setEditForm((prev) => ({
+                                                ...prev,
+                                                device_type: e.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="terminal">Терминал</option>
+                                        <option value="printer">Принтер</option>
+                                        <option value="scanner">Сканер</option>
+                                        <option value="pc">ПК</option>
+                                        <option value="other">Другое</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="field">
+                            <label className="label">
+                                Наименование устройства
+                            </label>
+                            <div className="control">
+                                <input
+                                    className="input"
+                                    type="text"
+                                    value={editForm.device_name}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            device_name: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="field">
+                            <label className="label">Серийный номер</label>
+                            <div className="control">
+                                <input
+                                    className="input"
+                                    type="text"
+                                    value={editForm.device_serial}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            device_serial: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="field">
+                            <label className="label">Неисправность</label>
+                            <div className="control">
+                                <textarea
+                                    className="textarea"
+                                    rows="3"
+                                    value={editForm.device_issue}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            device_issue: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="field">
+                            <label className="label">Контактное лицо</label>
+                            <div className="control">
+                                <input
+                                    className="input"
+                                    type="text"
+                                    value={editForm.contact_person}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            contact_person: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="field">
+                            <label className="label">Адрес КСА</label>
+                            <div className="control">
+                                <input
+                                    className="input"
+                                    type="text"
+                                    value={editForm.ksa_address}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            ksa_address: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        {editError ? (
+                            <p className="help is-danger">{editError}</p>
+                        ) : null}
+                    </section>
+                    <footer className="modal-card-foot">
+                        <button
+                            className={`button is-success ${
+                                isSavingEdit ? "is-loading" : ""
+                            }`}
+                            type="button"
+                            onClick={saveEdit}
+                            disabled={isSavingEdit}
+                        >
+                            Сохранить
+                        </button>
+                        <button
+                            className="button"
+                            type="button"
+                            onClick={closeEditModal}
+                            disabled={isSavingEdit}
+                        >
+                            Отмена
                         </button>
                     </footer>
                 </div>
