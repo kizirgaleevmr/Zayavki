@@ -377,22 +377,6 @@ ${photoBlock}
         }
     }
 
-    if (isLoading) {
-        return (
-            <section className="container">
-                <p>Загрузка заявок...</p>
-            </section>
-        );
-    }
-
-    if (error) {
-        return (
-            <section className="container">
-                <p className="has-text-danger">{error}</p>
-            </section>
-        );
-    }
-
     const filteredZayavki = useMemo(() => {
         const query = searchText.trim().toLowerCase();
 
@@ -445,6 +429,22 @@ ${photoBlock}
         const start = (currentPage - 1) * PAGE_SIZE;
         return filteredZayavki.slice(start, start + PAGE_SIZE);
     }, [filteredZayavki, currentPage, PAGE_SIZE]);
+
+    if (isLoading) {
+        return (
+            <section className="container">
+                <p>Загрузка заявок...</p>
+            </section>
+        );
+    }
+
+    if (error) {
+        return (
+            <section className="container">
+                <p className="has-text-danger">{error}</p>
+            </section>
+        );
+    }
 
     return (
         <section className="container all-zayavki-page">
