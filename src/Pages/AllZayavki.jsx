@@ -184,7 +184,9 @@ ${photoBlock}
 
             const result = await response.json();
             if (!response.ok) {
-                throw new Error(result.message || "Не удалось сохранить решение");
+                throw new Error(
+                    result.message || "Не удалось сохранить решение",
+                );
             }
 
             setZayavki((prev) =>
@@ -213,9 +215,12 @@ ${photoBlock}
 
         try {
             setDeletingId(item._id);
-            let response = await fetchWithAuth(`${apiUrl}/zayavki/${item._id}`, {
-                method: "DELETE",
-            });
+            let response = await fetchWithAuth(
+                `${apiUrl}/zayavki/${item._id}`,
+                {
+                    method: "DELETE",
+                },
+            );
             if (response.status === 404) {
                 response = await fetchWithAuth(
                     `${apiUrl}/zayavki/${item._id}/delete`,
@@ -245,7 +250,9 @@ ${photoBlock}
     }
 
     function getImageExtension(dataUrl) {
-        const match = String(dataUrl).match(/^data:image\/(png|jpeg|jpg);base64,/i);
+        const match = String(dataUrl).match(
+            /^data:image\/(png|jpeg|jpg);base64,/i,
+        );
         if (!match) return null;
         const ext = match[1].toLowerCase();
         return ext === "jpg" ? "jpeg" : ext;
@@ -288,12 +295,16 @@ ${photoBlock}
                     contactPerson: item.contact_person || "-",
                     decision: item.decision || "-",
                     decisionDate: item.decision_date
-                        ? new Date(item.decision_date).toLocaleDateString("ru-RU")
+                        ? new Date(item.decision_date).toLocaleDateString(
+                              "ru-RU",
+                          )
                         : "-",
                 });
 
                 if (item.device_photo?.data_base64) {
-                    const ext = getImageExtension(item.device_photo.data_base64);
+                    const ext = getImageExtension(
+                        item.device_photo.data_base64,
+                    );
                     if (ext) {
                         const imageId = workbook.addImage({
                             base64: item.device_photo.data_base64,
@@ -359,7 +370,9 @@ ${photoBlock}
                         <div className="select">
                             <select
                                 value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
+                                onChange={(e) =>
+                                    setStatusFilter(e.target.value)
+                                }
                             >
                                 <option value="all">Все</option>
                                 <option value="resolved">Решенные</option>
@@ -431,7 +444,10 @@ ${photoBlock}
                                     <td>
                                         {item.device_photo?.data_base64 ? (
                                             <img
-                                                src={item.device_photo.data_base64}
+                                                src={
+                                                    item.device_photo
+                                                        .data_base64
+                                                }
                                                 alt="Фото устройства"
                                                 style={{
                                                     width: "64px",
@@ -483,7 +499,10 @@ ${photoBlock}
             )}
 
             <div className={`modal ${isModalOpen ? "is-active" : ""}`}>
-                <div className="modal-background" onClick={closeDecisionModal} />
+                <div
+                    className="modal-background"
+                    onClick={closeDecisionModal}
+                />
                 <div className="modal-card">
                     <header className="modal-card-head">
                         <p className="modal-card-title">Решение по заявке</p>
@@ -498,7 +517,9 @@ ${photoBlock}
                         {selectedZayavka ? (
                             <p className="mb-3">
                                 Заявка:{" "}
-                                <strong>{selectedZayavka.device_serial || "-"}</strong>
+                                <strong>
+                                    {selectedZayavka.device_serial || "-"}
+                                </strong>
                             </p>
                         ) : null}
                         <div className="field">
@@ -507,7 +528,9 @@ ${photoBlock}
                                 <textarea
                                     className="textarea"
                                     value={decisionText}
-                                    onChange={(e) => setDecisionText(e.target.value)}
+                                    onChange={(e) =>
+                                        setDecisionText(e.target.value)
+                                    }
                                     placeholder="Введите решение"
                                     rows="4"
                                 />
@@ -520,7 +543,9 @@ ${photoBlock}
                                     className="input"
                                     type="date"
                                     value={decisionDate}
-                                    onChange={(e) => setDecisionDate(e.target.value)}
+                                    onChange={(e) =>
+                                        setDecisionDate(e.target.value)
+                                    }
                                 />
                             </div>
                         </div>
@@ -591,7 +616,9 @@ ${photoBlock}
                                 </p>
                                 <p>
                                     <strong>Тип устройства:</strong>{" "}
-                                    {deviceTypeLabels[detailsZayavka.device_type] ||
+                                    {deviceTypeLabels[
+                                        detailsZayavka.device_type
+                                    ] ||
                                         detailsZayavka.device_type ||
                                         "-"}
                                 </p>
@@ -628,7 +655,10 @@ ${photoBlock}
                                 </p>
                                 {detailsZayavka.device_photo?.data_base64 ? (
                                     <img
-                                        src={detailsZayavka.device_photo.data_base64}
+                                        src={
+                                            detailsZayavka.device_photo
+                                                .data_base64
+                                        }
                                         alt="Фото устройства"
                                         style={{
                                             width: "220px",
