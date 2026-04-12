@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAuthHeaders } from "../utils/auth";
+import { fetchWithAuth, getAuthHeaders } from "../utils/auth";
 
 export default function FormZayavki() {
     const [reg, setReg] = useState([]);
@@ -96,10 +96,9 @@ export default function FormZayavki() {
                 device_photo: photoPayload,
             };
 
-            const response = await fetch(`${apiUrl}/zayavki`, {
+            const response = await fetchWithAuth(`${apiUrl}/zayavki`, {
                 method: "POST",
                 headers: {
-                    ...getAuthHeaders(),
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(payload),
