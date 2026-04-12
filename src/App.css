@@ -229,6 +229,13 @@ a.active {
     gap: 4px;
 }
 
+.app-navbar .navbar-item a,
+.app-navbar .navbar-item span {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.25;
+}
+
 .form-zayavki-page .z-form-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -247,6 +254,29 @@ a.active {
     width: 100%;
 }
 
+.form-zayavki-page .label,
+.all-zayavki-page .label {
+    font-size: 16px;
+    line-height: 1.35;
+}
+
+.form-zayavki-page .input,
+.form-zayavki-page .select select,
+.form-zayavki-page .textarea,
+.all-zayavki-page .input,
+.all-zayavki-page .select select,
+.all-zayavki-page .button,
+.form-control .input,
+.form-control .button {
+    font-size: 16px;
+    line-height: 1.35;
+}
+
+.form-zayavki-page .textarea,
+.all-zayavki-page .textarea {
+    line-height: 1.45;
+}
+
 .all-zayavki-page .zayavki-table-container {
     overflow-x: auto;
 }
@@ -254,6 +284,7 @@ a.active {
 .all-zayavki-page table td,
 .all-zayavki-page table th {
     vertical-align: middle;
+    line-height: 1.35;
 }
 
 .all-zayavki-page .zayavki-toolbar {
@@ -293,7 +324,7 @@ a.active {
 }
 
 .all-zayavki-page .zayavka-card-date {
-    font-size: 13px;
+    font-size: 14px;
     margin: 0;
 }
 
@@ -325,8 +356,8 @@ a.active {
 
 .all-zayavki-page .zayavka-card-fields p {
     margin: 0 0 6px;
-    font-size: 13px;
-    line-height: 1.25;
+    font-size: 14px;
+    line-height: 1.4;
 }
 
 .all-zayavki-page .zayavka-card-actions {
@@ -340,6 +371,37 @@ a.active {
 }
 
 @media (max-width: 1023px) {
+    .app-navbar .navbar-item a,
+    .app-navbar .navbar-item span {
+        font-size: 17px;
+    }
+
+    .title.is-4 {
+        font-size: 1.45rem;
+        line-height: 1.25;
+    }
+
+    .form-zayavki-page .label,
+    .all-zayavki-page .label {
+        font-size: 17px;
+    }
+
+    .form-zayavki-page .input,
+    .form-zayavki-page .select select,
+    .form-zayavki-page .textarea,
+    .all-zayavki-page .input,
+    .all-zayavki-page .select select,
+    .all-zayavki-page .button,
+    .form-control .input,
+    .form-control .button {
+        font-size: 17px;
+    }
+
+    .all-zayavki-page .help {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
     .container {
         padding-left: 12px;
         padding-right: 12px;
@@ -379,7 +441,7 @@ a.active {
     }
 
     .all-zayavki-page .table {
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .all-zayavki-page .zayavki-search {
@@ -394,8 +456,38 @@ a.active {
 }
 
 @media (max-width: 767px) {
+    .auth {
+        padding-top: 48px;
+    }
+
+    .form-control {
+        width: 100%;
+        max-width: 420px;
+        padding: 20px 16px;
+    }
+
     .logo {
         width: 130px;
+    }
+
+    .title.is-4 {
+        font-size: 1.35rem;
+    }
+
+    .form-zayavki-page .label,
+    .all-zayavki-page .label {
+        font-size: 16px;
+    }
+
+    .form-zayavki-page .input,
+    .form-zayavki-page .select select,
+    .form-zayavki-page .textarea,
+    .all-zayavki-page .input,
+    .all-zayavki-page .select select,
+    .all-zayavki-page .button,
+    .form-control .input,
+    .form-control .button {
+        font-size: 16px;
     }
 
     .form-zayavki-page .z-form-grid {
@@ -423,8 +515,29 @@ a.active {
         flex-wrap: wrap;
     }
 
+    .all-zayavki-page .zayavka-card-date,
+    .all-zayavki-page .zayavka-card-fields p,
+    .all-zayavki-page .zayavka-card-actions .button {
+        font-size: 15px;
+    }
+
     .all-zayavki-page .zayavka-card-actions .button {
         flex: 1 1 100%;
+    }
+
+    .modal-card-title {
+        font-size: 20px;
+        line-height: 1.25;
+    }
+
+    .modal-card-body,
+    .modal-card-body p,
+    .modal-card-body .label,
+    .modal-card-body .input,
+    .modal-card-body .textarea,
+    .modal-card-foot .button {
+        font-size: 15px;
+        line-height: 1.4;
     }
 
     .modal-card {
