@@ -117,6 +117,7 @@ const zayavkaScheme = new Schema(
             mime_type: { type: String },
             data_base64: { type: String },
         },
+        created_by: { type: String, default: "-" },
     },
     { timestamps: true },
 );
