@@ -591,9 +591,9 @@ ${photoBlock}
             <h1 className="title is-4">Все заявки</h1>
             <div className="mb-4">
                 <span className="has-text-grey">
-                    {user && user.name ? (
+                    {user && (user.login || user.name) ? (
                         <>
-                            Пользователь: <strong>{user.name}</strong>
+                            Пользователь: <strong>{user.login || user.name}</strong>
                         </>
                     ) : (
                         "Пользователь не определён"
