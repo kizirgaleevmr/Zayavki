@@ -1,11 +1,12 @@
 import "./App.css";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { clearAuthSession, getAuthHeaders } from "./utils/auth";
 import logo from "./assets/logo2.png";
 function App() {
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
+    const navigate = useNavigate();
 
-    async function exitUSers() {
+    async function exitUsers() {
         try {
             await fetch(`${apiUrl}/auth/logout`, {
                 method: "POST",
@@ -17,6 +18,7 @@ function App() {
             // ignore network errors on logout
         } finally {
             clearAuthSession();
+            navigate("/auth", { replace: true });
         }
     }
 
@@ -65,17 +67,13 @@ function App() {
                             </NavLink>
                         </div>
                         <div className="navbar-item">
-                            <NavLink to="/auth" onClick={exitUSers}>
-                                {({ isActive }) => (
-                                    <span
-                                        className={
-                                            isActive ? "active" : "is-white"
-                                        }
-                                    >
-                                        Выход
-                                    </span>
-                                )}
-                            </NavLink>
+                            <button
+                                type="button"
+                                className="app-logout-button"
+                                onClick={exitUsers}
+                            >
+                                Выход
+                            </button>
                         </div>
                     </div>
                 </div>
