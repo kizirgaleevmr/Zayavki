@@ -1341,22 +1341,7 @@ ${photoBlock}
                                 />
                             </div>
                         </div>
-                        <div className="field">
-                            <label className="label">Адрес КСА</label>
-                            <div className="control">
-                                <input
-                                    className="input"
-                                    type="text"
-                                    value={editForm.ksa_address}
-                                    onChange={(e) =>
-                                        setEditForm((prev) => ({
-                                            ...prev,
-                                            ksa_address: e.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
-                        </div>
+                        {/* Поле "Адрес КСА" удалено по запросу */}
                         {editError ? (
                             <p className="help is-danger">{editError}</p>
                         ) : null}
