@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchWithAuth, getAuthHeaders } from "../utils/auth";
+import { fetchWithAuth, getAuthHeaders, AUTH_USER_KEY } from "../utils/auth";
 
 export default function FormZayavki() {
     const navigate = useNavigate();
@@ -84,6 +84,16 @@ export default function FormZayavki() {
                 };
             }
 
+            // Получаем имя пользователя
+            let createdBy = "-";
+            try {
+                const userStr = localStorage.getItem(AUTH_USER_KEY);
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    createdBy = user.login || user.name || "-";
+                }
+            } catch {}
+
             const payload = {
                 region_id: selectedRegion.id,
                 region_code: selectedRegion.code,
@@ -98,6 +108,7 @@ export default function FormZayavki() {
                 device_issue: formData.get("device_issue"),
                 contact_person: formData.get("contact_person"),
                 device_photo: photoPayload,
+                created_by: createdBy,
             };
 
             const response = await fetchWithAuth(`${apiUrl}/zayavki`, {

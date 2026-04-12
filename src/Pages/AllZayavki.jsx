@@ -675,6 +675,7 @@ ${photoBlock}
                                     <th>Серийный номер</th>
                                     <th>Неисправность</th>
                                     <th>Контактное лицо</th>
+                                    <th>Кто завел заявку</th>
                                     <th>Решение</th>
                                     <th>Действия</th>
                                 </tr>
@@ -741,6 +742,7 @@ ${photoBlock}
                                         <td>{item.device_serial || "-"}</td>
                                         <td>{item.device_issue || "-"}</td>
                                         <td>{item.contact_person || "-"}</td>
+                                        <td>{item.created_by || item.createdBy || item.author || "-"}</td>
                                         <td>
                                             <div>{item.decision || "-"}</div>
                                             <div className="is-size-7 has-text-grey">
