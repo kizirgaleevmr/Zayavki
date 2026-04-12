@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { fetchWithAuth, getAuthHeaders } from "../utils/auth";
 
 export default function FormZayavki() {
+    const navigate = useNavigate();
     const [reg, setReg] = useState([]);
     const [checkRegion, setCheckRegion] = useState("");
     const [ksa, setKsa] = useState([]);
@@ -128,6 +130,7 @@ export default function FormZayavki() {
             setSelectedRegion({ id: "", code: "" });
             setSelectedKsa("");
             setKsa([]);
+            navigate("/zayavki/all");
         } catch (error) {
             setSubmitMessage(error.message || "Ошибка отправки заявки");
         } finally {
