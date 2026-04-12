@@ -645,6 +645,7 @@ ${photoBlock}
                         <table className="table is-fullwidth is-striped is-hoverable">
                             <thead>
                                 <tr>
+                                    <th>Номер заявки</th>
                                     <th>Дата</th>
                                     <th>Изображение</th>
                                     <th>КСА</th>
@@ -667,6 +668,9 @@ ${photoBlock}
                                         }}
                                         onClick={() => openDecisionModal(item)}
                                     >
+                                        <td>
+                                            {item._id ? String(item._id).slice(-6) : "-"}
+                                        </td>
                                         <td>
                                             {item.createdAt
                                                 ? new Date(
@@ -823,6 +827,9 @@ ${photoBlock}
                                               ).toLocaleString("ru-RU")
                                             : "-"}
                                     </p>
+                                    <span className="tag is-info">
+                                        № {item._id ? String(item._id).slice(-6) : "-"}
+                                    </span>
                                     <span className="tag is-light">
                                         {item.ksa_number ||
                                             item.ksa_name ||
