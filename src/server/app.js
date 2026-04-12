@@ -384,6 +384,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             device_issue,
             contact_person,
             device_photo,
+            created_by,
         } = req.body;
 
         if (
@@ -411,6 +412,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             device_issue,
             contact_person,
             device_photo: device_photo || null,
+            created_by: created_by || "-",
         });
 
         return res.status(201).json({
