@@ -593,7 +593,8 @@ ${photoBlock}
                 <span className="has-text-grey">
                     {user && (user.login || user.name) ? (
                         <>
-                            Пользователь: <strong>{user.login || user.name}</strong>
+                            Пользователь:{" "}
+                            <strong>{user.login || user.name}</strong>
                         </>
                     ) : (
                         "Пользователь не определён"
