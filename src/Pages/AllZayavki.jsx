@@ -47,10 +47,24 @@ export default function AllZayavki() {
                 });
 
                 if (!response.ok) {
-                    throw new Error("Не удалось получить список заявок");
+                    let message = "Не удалось получить список заявок";
+                    try {
+                        const errorBody = await response.json();
+                        if (errorBody?.message) {
+                            message = errorBody.message;
+                        }
+                    } catch {
+                        // ignore parse error
+                    }
+                    throw new Error(message);
                 }
 
-                const data = await response.json();
+                const rawData = await response.json();
+                const data = Array.isArray(rawData)
+                    ? rawData
+                    : Array.isArray(rawData?.zayavki)
+                      ? rawData.zayavki
+                      : [];
                 setZayavki(data);
                 setLastUpdated(new Date().toLocaleString("ru-RU"));
             } catch (err) {

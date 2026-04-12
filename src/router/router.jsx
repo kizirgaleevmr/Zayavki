@@ -1,6 +1,7 @@
 import {
     createBrowserRouter,
     createRoutesFromElements,
+    Navigate,
     Route,
 } from "react-router";
 import { NavLink } from "react-router";
@@ -17,6 +18,10 @@ const route = createBrowserRouter(
             <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<App />}>
                     <Route path="/zayavki" element={<ZayavkiPage />}>
+                        <Route
+                            index
+                            element={<Navigate to="/zayavki/all" replace />}
+                        />
                         <Route path="/zayavki/new" element={<FormZayavki />} />
                         <Route path="/zayavki/all" element={<AllZayavki />} />
                     </Route>
@@ -32,7 +37,9 @@ const route = createBrowserRouter(
                             Такой страницы нет: 404!
                         </p>
                         <NavLink to="/">
-                            <button class="button is-warning">Назад</button>
+                            <button className="button is-warning">
+                                Назад
+                            </button>
                         </NavLink>
                     </section>
                 }
