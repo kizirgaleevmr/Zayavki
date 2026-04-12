@@ -171,6 +171,29 @@ async function fetchZayavkiSafe() {
     return [];
 }
 
+function isResolvedDecision(decision) {
+    const value = String(decision || "").trim();
+    return value.length > 0 && value !== "-";
+}
+
+function escapeRegex(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function enrichZayavka(zayavka, regionById, ksaById) {
+    const regionItem = regionById.get(String(zayavka.region_id));
+    const ksaItem = ksaById.get(String(zayavka.ksa_id));
+
+    return {
+        ...zayavka,
+        region_name: regionItem?.reg_naimenovanie || "",
+        ksa_number: ksaItem?.nomer_ksa || "",
+        ksa_name: ksaItem?.ksa_naimenovanie || "",
+        ksa_address:
+            zayavka.ksa_address || ksaItem?.ksa_adress || ksaItem?.ksa_address || "",
+    };
+}
+
 async function deleteZayavkaSafe(id) {
     const idString = String(id);
 
@@ -404,7 +427,75 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
 
 app.get("/zayavki", authMiddleware, async (req, res) => {
     try {
-        const zayavki = await fetchZayavkiSafe();
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 20));
+        const status = String(req.query.status || "all");
+        const includePhoto = String(req.query.includePhoto || "0") === "1";
+        const search = String(req.query.search || "").trim();
+        const skip = (page - 1) * limit;
+
+        const mongoFilter = {};
+        if (status === "resolved") {
+            mongoFilter.decision = { $nin: ["", "-", null] };
+        } else if (status === "unresolved") {
+            mongoFilter.$or = [
+                { decision: { $exists: false } },
+                { decision: null },
+                { decision: "" },
+                { decision: "-" },
+            ];
+        }
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), "i");
+            mongoFilter.$or = [
+                ...(mongoFilter.$or || []),
+                { device_serial: regex },
+                { device_name: regex },
+                { device_issue: regex },
+                { contact_person: regex },
+                { ksa_id: regex },
+                { ksa_address: regex },
+            ];
+        }
+
+        const totalFromModel = await Zayavka.countDocuments(mongoFilter);
+        let zayavkiPage = [];
+        let total = totalFromModel;
+
+        if (totalFromModel > 0) {
+            zayavkiPage = await Zayavka.find(mongoFilter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean();
+        } else {
+            let allFallback = await fetchZayavkiSafe();
+
+            allFallback = allFallback.filter((item) => {
+                if (status === "resolved" && !isResolvedDecision(item.decision)) {
+                    return false;
+                }
+                if (status === "unresolved" && isResolvedDecision(item.decision)) {
+                    return false;
+                }
+                if (!search) return true;
+                const searchable = [
+                    item.device_serial,
+                    item.device_name,
+                    item.device_issue,
+                    item.contact_person,
+                    item.ksa_id,
+                    item.ksa_address,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                return searchable.includes(search.toLowerCase());
+            });
+
+            total = allFallback.length;
+            zayavkiPage = allFallback.slice(skip, skip + limit);
+        }
 
         const [regions, ksaList] = await Promise.all([
             fetchRegionsSafe(),
@@ -418,28 +509,89 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
             ksaList.map((ksaItem) => [String(ksaItem.id_ksa), ksaItem]),
         );
 
-        const enriched = zayavki.map((zayavka) => {
-            const regionItem = regionById.get(String(zayavka.region_id));
-            const ksaItem = ksaById.get(String(zayavka.ksa_id));
+        const items = zayavkiPage.map((zayavka) => {
+            const enriched = enrichZayavka(zayavka, regionById, ksaById);
+            if (includePhoto) {
+                return enriched;
+            }
 
             return {
-                ...zayavka,
-                region_name: regionItem?.reg_naimenovanie || "",
-                ksa_number: ksaItem?.nomer_ksa || "",
-                ksa_name: ksaItem?.ksa_naimenovanie || "",
-                ksa_address:
-                    zayavka.ksa_address ||
-                    ksaItem?.ksa_adress ||
-                    ksaItem?.ksa_address ||
-                    "",
+                ...enriched,
+                device_photo: enriched.device_photo
+                    ? {
+                          file_name: enriched.device_photo.file_name || "",
+                          mime_type: enriched.device_photo.mime_type || "",
+                      }
+                    : null,
             };
         });
 
-        return res.status(200).json(enriched);
+        return res.status(200).json({
+            items,
+            total,
+            page,
+            limit,
+            totalPages: Math.max(1, Math.ceil(total / limit)),
+        });
     } catch (error) {
         console.error("[GET /zayavki] error:", error);
         return res.status(500).json({
             message: "Ошибка получения списка заявок",
+        });
+    }
+});
+
+app.get("/zayavki/:id", authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const idString = String(id);
+        let zayavka = await Zayavka.findById(idString).lean();
+
+        if (!zayavka) {
+            const db = mongoose.connection.db;
+            const collections = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
+            const filters = [{ _id: idString }];
+
+            if (mongoose.Types.ObjectId.isValid(idString)) {
+                filters.push({ _id: new mongoose.Types.ObjectId(idString) });
+            }
+            filters.push({ id: idString });
+            filters.push({ id_note: idString });
+            filters.push({ id_zayavka: idString });
+
+            for (const collectionName of collections) {
+                for (const filter of filters) {
+                    zayavka = await db.collection(collectionName).findOne(filter);
+                    if (zayavka) break;
+                }
+                if (zayavka) break;
+            }
+        }
+
+        if (!zayavka) {
+            return res.status(404).json({
+                message: "Заявка не найдена",
+            });
+        }
+
+        const [regions, ksaList] = await Promise.all([
+            fetchRegionsSafe(),
+            fetchKsaSafe({}),
+        ]);
+        const regionById = new Map(
+            regions.map((regionItem) => [String(regionItem.id_reg), regionItem]),
+        );
+        const ksaById = new Map(
+            ksaList.map((ksaItem) => [String(ksaItem.id_ksa), ksaItem]),
+        );
+
+        return res.status(200).json(
+            enrichZayavka(zayavka, regionById, ksaById),
+        );
+    } catch (error) {
+        console.error("[GET /zayavki/:id] error:", error);
+        return res.status(500).json({
+            message: "Ошибка получения заявки",
         });
     }
 });

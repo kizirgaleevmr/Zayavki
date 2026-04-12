@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ExcelJS from "exceljs";
 import { fetchWithAuth } from "../utils/auth";
 
@@ -9,6 +9,8 @@ export default function AllZayavki() {
     const [error, setError] = useState("");
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [detailsZayavka, setDetailsZayavka] = useState(null);
+    const [isDetailsLoading, setIsDetailsLoading] = useState(false);
+    const [detailsError, setDetailsError] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedZayavka, setSelectedZayavka] = useState(null);
     const [decisionText, setDecisionText] = useState("");
@@ -31,6 +33,8 @@ export default function AllZayavki() {
     const [isExporting, setIsExporting] = useState(false);
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState("");
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
@@ -54,9 +58,21 @@ export default function AllZayavki() {
                     setError("");
                 }
 
-                const response = await fetchWithAuth(`${apiUrl}/zayavki`, {
-                    method: "GET",
+                const params = new URLSearchParams({
+                    page: String(currentPage),
+                    limit: String(PAGE_SIZE),
+                    status: statusFilter,
                 });
+                if (searchText.trim()) {
+                    params.set("search", searchText.trim());
+                }
+
+                const response = await fetchWithAuth(
+                    `${apiUrl}/zayavki?${params.toString()}`,
+                    {
+                        method: "GET",
+                    },
+                );
 
                 if (!response.ok) {
                     let message = "Не удалось получить список заявок";
@@ -74,10 +90,22 @@ export default function AllZayavki() {
                 const rawData = await response.json();
                 const data = Array.isArray(rawData)
                     ? rawData
-                    : Array.isArray(rawData?.zayavki)
-                      ? rawData.zayavki
-                      : [];
+                    : Array.isArray(rawData?.items)
+                      ? rawData.items
+                      : Array.isArray(rawData?.zayavki)
+                        ? rawData.zayavki
+                        : [];
                 setZayavki(data);
+                setTotalItems(
+                    Number.isFinite(rawData?.total)
+                        ? rawData.total
+                        : data.length,
+                );
+                setTotalPages(
+                    Number.isFinite(rawData?.totalPages)
+                        ? rawData.totalPages
+                        : 1,
+                );
                 setLastUpdated(new Date().toLocaleString("ru-RU"));
             } catch (err) {
                 if (!silent) {
@@ -93,7 +121,7 @@ export default function AllZayavki() {
                 }
             }
         },
-        [apiUrl],
+        [apiUrl, currentPage, PAGE_SIZE, searchText, statusFilter],
     );
 
     useEffect(() => {
@@ -110,11 +138,6 @@ export default function AllZayavki() {
         return decision && decision !== "-"
             ? { backgroundColor: "#e8f8ee" }
             : { backgroundColor: "#fdeeee" };
-    }
-
-    function isResolved(item) {
-        const decision = (item.decision || "").trim();
-        return Boolean(decision && decision !== "-");
     }
 
     function openDecisionModal(item) {
@@ -137,15 +160,36 @@ export default function AllZayavki() {
         setDecisionError("");
     }
 
-    function openDetailsModal(item, evt) {
+    async function openDetailsModal(item, evt) {
         evt.stopPropagation();
-        setDetailsZayavka(item);
+        setDetailsError("");
+        setIsDetailsLoading(true);
+        setDetailsZayavka(null);
         setIsDetailsModalOpen(true);
+
+        try {
+            const response = await fetchWithAuth(`${apiUrl}/zayavki/${item._id}`, {
+                method: "GET",
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(
+                    result.message || "Не удалось получить данные заявки",
+                );
+            }
+            setDetailsZayavka(result);
+        } catch (err) {
+            setDetailsError(err.message || "Ошибка загрузки деталей");
+        } finally {
+            setIsDetailsLoading(false);
+        }
     }
 
     function closeDetailsModal() {
         setIsDetailsModalOpen(false);
         setDetailsZayavka(null);
+        setIsDetailsLoading(false);
+        setDetailsError("");
     }
 
     function openEditModal(item, evt) {
@@ -400,6 +444,43 @@ ${photoBlock}
     async function exportAllToExcel() {
         try {
             setIsExporting(true);
+            const exportLimit = 100;
+            const exportItems = [];
+            let exportPage = 1;
+            let exportTotalPages = 1;
+
+            do {
+                const params = new URLSearchParams({
+                    page: String(exportPage),
+                    limit: String(exportLimit),
+                    status: statusFilter,
+                    includePhoto: "1",
+                });
+                if (searchText.trim()) {
+                    params.set("search", searchText.trim());
+                }
+
+                const response = await fetchWithAuth(
+                    `${apiUrl}/zayavki?${params.toString()}`,
+                    {
+                        method: "GET",
+                    },
+                );
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(
+                        result.message || "Не удалось выгрузить заявки",
+                    );
+                }
+
+                const pageItems = Array.isArray(result?.items)
+                    ? result.items
+                    : [];
+                exportItems.push(...pageItems);
+                exportTotalPages = Number(result?.totalPages || 1);
+                exportPage += 1;
+            } while (exportPage <= exportTotalPages);
+
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet("Заявки");
 
@@ -416,7 +497,7 @@ ${photoBlock}
                 { header: "Дата решения", key: "decisionDate", width: 16 },
             ];
 
-            zayavki.forEach((item, index) => {
+            exportItems.forEach((item, index) => {
                 const rowNumber = index + 2;
                 worksheet.addRow({
                     createdAt: item.createdAt
@@ -476,58 +557,9 @@ ${photoBlock}
         }
     }
 
-    const filteredZayavki = useMemo(() => {
-        const query = searchText.trim().toLowerCase();
-
-        return zayavki.filter((item) => {
-            const matchByStatus =
-                statusFilter === "resolved"
-                    ? isResolved(item)
-                    : statusFilter === "unresolved"
-                      ? !isResolved(item)
-                      : true;
-
-            if (!matchByStatus) return false;
-            if (!query) return true;
-
-            const searchable = [
-                item.device_serial,
-                item.device_name,
-                item.contact_person,
-                item.ksa_number,
-                item.ksa_name,
-                item.ksa_id,
-                item.ksa_address,
-                item.region_name,
-                item.decision,
-            ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
-
-            return searchable.includes(query);
-        });
-    }, [zayavki, statusFilter, searchText]);
-
     useEffect(() => {
         setCurrentPage(1);
     }, [statusFilter, searchText]);
-
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filteredZayavki.length / PAGE_SIZE),
-    );
-
-    useEffect(() => {
-        if (currentPage > totalPages) {
-            setCurrentPage(totalPages);
-        }
-    }, [currentPage, totalPages]);
-
-    const paginatedZayavki = useMemo(() => {
-        const start = (currentPage - 1) * PAGE_SIZE;
-        return filteredZayavki.slice(start, start + PAGE_SIZE);
-    }, [filteredZayavki, currentPage, PAGE_SIZE]);
 
     if (isLoading) {
         return (
@@ -595,14 +627,13 @@ ${photoBlock}
                         </button>
                     </div>
                     <p className="help mt-2">
-                        Показано: {paginatedZayavki.length} из{" "}
-                        {filteredZayavki.length} (всего {zayavki.length})
+                        Показано: {zayavki.length} из {totalItems}
                         {lastUpdated ? ` • обновлено: ${lastUpdated}` : ""}
                     </p>
                 </div>
             </div>
 
-            {filteredZayavki.length === 0 ? (
+            {zayavki.length === 0 ? (
                 <p>
                     {searchText.trim()
                         ? "По вашему поиску ничего не найдено."
@@ -627,7 +658,7 @@ ${photoBlock}
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedZayavki.map((item) => (
+                                {zayavki.map((item) => (
                                     <tr
                                         key={item._id}
                                         style={{
@@ -658,6 +689,10 @@ ${photoBlock}
                                                         borderRadius: "6px",
                                                     }}
                                                 />
+                                            ) : item.device_photo?.file_name &&
+                                              item.device_photo.file_name !==
+                                                  "нету фото" ? (
+                                                "Есть"
                                             ) : (
                                                 "-"
                                             )}
@@ -774,7 +809,7 @@ ${photoBlock}
                     </div>
 
                     <div className="zayavki-mobile-view">
-                        {paginatedZayavki.map((item) => (
+                        {zayavki.map((item) => (
                             <article
                                 key={item._id}
                                 className="zayavka-card"
@@ -803,6 +838,12 @@ ${photoBlock}
                                             alt="Фото устройства"
                                             className="zayavka-card-image"
                                         />
+                                    ) : item.device_photo?.file_name &&
+                                      item.device_photo.file_name !==
+                                          "нету фото" ? (
+                                        <div className="zayavka-card-image-placeholder">
+                                            Есть фото
+                                        </div>
                                     ) : (
                                         <div className="zayavka-card-image-placeholder">
                                             Нет фото
@@ -1027,7 +1068,11 @@ ${photoBlock}
                         />
                     </header>
                     <section className="modal-card-body">
-                        {detailsZayavka ? (
+                        {isDetailsLoading ? (
+                            <p>Загрузка данных заявки...</p>
+                        ) : detailsError ? (
+                            <p className="has-text-danger">{detailsError}</p>
+                        ) : detailsZayavka ? (
                             <>
                                 <p>
                                     <strong>Дата:</strong>{" "}
@@ -1108,7 +1153,9 @@ ${photoBlock}
                                     <p>-</p>
                                 )}
                             </>
-                        ) : null}
+                        ) : (
+                            <p>Данные заявки не найдены.</p>
+                        )}
                     </section>
                     <footer className="modal-card-foot">
                         <button
