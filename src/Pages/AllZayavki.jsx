@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import ExcelJS from "exceljs";
-import { fetchWithAuth } from "../utils/auth";
+import { fetchWithAuth, AUTH_USER_KEY } from "../utils/auth";
 
 export default function AllZayavki() {
+    // Получение пользователя из localStorage
+    let user = null;
+    try {
+        const userStr = localStorage.getItem(AUTH_USER_KEY);
+        if (userStr) user = JSON.parse(userStr);
+    } catch {}
     const [zayavki, setZayavki] = useState([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(true);
@@ -583,6 +589,15 @@ ${photoBlock}
     return (
         <section className="container all-zayavki-page">
             <h1 className="title is-4">Все заявки</h1>
+            <div className="mb-4">
+                <span className="has-text-grey">
+                    {user && user.name ? (
+                        <>Пользователь: <strong>{user.name}</strong></>
+                    ) : (
+                        "Пользователь не определён"
+                    )}
+                </span>
+            </div>
 
             <div className="field mb-4">
                 <label className="label">Фильтр и поиск</label>
@@ -1013,13 +1028,25 @@ ${photoBlock}
                         {selectedZayavka ? (
                             <>
                                 <p className="mb-2">
-                                    <span className="has-text-weight-semibold">Номер заявки:</span>{" "}
-                                    <span className="tag is-info is-medium" style={{marginLeft: 4}}>
-                                        № {selectedZayavka._id ? String(selectedZayavka._id).slice(-6) : "-"}
+                                    <span className="has-text-weight-semibold">
+                                        Номер заявки:
+                                    </span>{" "}
+                                    <span
+                                        className="tag is-info is-medium"
+                                        style={{ marginLeft: 4 }}
+                                    >
+                                        №{" "}
+                                        {selectedZayavka._id
+                                            ? String(selectedZayavka._id).slice(
+                                                  -6,
+                                              )
+                                            : "-"}
                                     </span>
                                 </p>
                                 <p className="mb-3">
-                                    <span className="has-text-weight-semibold">Номер КСА:</span>{" "}
+                                    <span className="has-text-weight-semibold">
+                                        Номер КСА:
+                                    </span>{" "}
                                     <span>
                                         {selectedZayavka.ksa_number || "-"}
                                     </span>
