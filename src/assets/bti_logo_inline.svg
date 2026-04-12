@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="300" viewBox="0 0 1400 300">
+
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f80ed"/>
+      <stop offset="1" stop-color="#1c4f9c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Text inline -->
+  <text x="50" y="180" font-family="Arial, Helvetica, sans-serif" font-size="140" font-weight="800" fill="url(#blue)">БТИ</text>
+  <text x="300" y="185" font-family="Arial, Helvetica, sans-serif" font-size="70" fill="#6b7280">КОРПОРЕЙШН</text>
+
+  <!-- Icon inline -->
+  <g transform="translate(850,60)">
+
+    <!-- main device -->
+    <rect x="0" y="40" width="120" height="140" rx="10" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2"/>
+
+    <!-- screen -->
+    <rect x="20" y="60" width="80" height="40" rx="5" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
+
+    <!-- slot -->
+    <rect x="30" y="115" width="60" height="8" rx="4" fill="#374151"/>
+
+    <!-- paper -->
+    <rect x="70" y="0" width="40" height="60" rx="5" fill="#ffffff" stroke="#9ca3af" stroke-width="2"/>
+    <path d="M80 25 L90 38 L105 15" stroke="#2f80ed" stroke-width="4" fill="none"/>
+
+    <!-- monitor -->
+    <rect x="150" y="50" width="90" height="60" rx="6" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
+    <rect x="185" y="110" width="20" height="20" fill="#6b7280"/>
+    <rect x="165" y="130" width="60" height="10" rx="5" fill="#374151"/>
+
+    <!-- system unit -->
+    <rect x="260" y="40" width="50" height="140" rx="8" fill="#1f2937"/>
+    <circle cx="285" cy="90" r="5" fill="#60a5fa"/>
+    <circle cx="285" cy="115" r="5" fill="#93c5fd"/>
+
+  </g>
+
+</svg>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700">
+  <defs>
+    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b9be3"/>
+      <stop offset="1" stop-color="#0b3f73"/>
+    </linearGradient>
+    <linearGradient id="darkPanel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4d6075"/>
+      <stop offset="1" stop-color="#13293d"/>
+    </linearGradient>
+    <linearGradient id="lightBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f8fa"/>
+      <stop offset="1" stop-color="#c9ced6"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7fd0ff"/>
+      <stop offset="1" stop-color="#0e70b8"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- Left text block -->
+  <g transform="translate(115,205)">
+    <text x="0" y="160" font-family="Arial, Helvetica, sans-serif" font-size="210" font-weight="800" fill="url(#blueGrad)" letter-spacing="2">БТИ</text>
+    <text x="2" y="245" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="500" fill="#757575" letter-spacing="9">КОРПОРЕЙШН</text>
+  </g>
+
+  <!-- Right icon block -->
+  <g transform="translate(780,120)" filter="url(#shadow)">
+    <!-- swoosh -->
+    <path d="M35 360
+             C115 270, 290 260, 445 300
+             C520 320, 555 340, 582 366
+             C515 355, 440 350, 332 353
+             C215 356, 106 365, 35 360 Z"
+          fill="#2c6fab" opacity="0.95"/>
+    <path d="M55 382
+             C150 330, 315 325, 510 350
+             C545 354, 570 360, 595 370
+             C530 391, 459 405, 340 407
+             C224 409, 122 400, 55 382 Z"
+          fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" opacity="0.96"/>
+    <path d="M95 405
+             C218 430, 422 430, 564 394"
+          fill="none" stroke="#31527b" stroke-width="14" stroke-linecap="round" opacity="0.8"/>
+
+    <!-- ballot processing complex -->
+    <g transform="translate(40,70)">
+      <path d="M60 70 L165 85 L165 250 L62 240 Z" fill="url(#lightBody)" stroke="#536475" stroke-width="4"/>
+      <path d="M165 85 L215 125 L215 290 L165 250 Z" fill="#dde1e7" stroke="#536475" stroke-width="4"/>
+      <path d="M62 240 L165 250 L215 290 L112 283 Z" fill="#cfd4dc" stroke="#536475" stroke-width="4"/>
+      <path d="M60 70 L113 30 L220 40 L165 85 Z" fill="#f6f8fa" stroke="#536475" stroke-width="4"/>
+      <path d="M98 87 L166 92 L166 136 L98 130 Z" fill="url(#screen)" stroke="#536475" stroke-width="3"/>
+      <rect x="88" y="153" width="78" height="12" rx="6" fill="#233648"/>
+      <path d="M110 16 L172 22 L163 73 L100 63 Z" fill="#ffffff" stroke="#7d8d9b" stroke-width="3"/>
+      <path d="M123 39 L136 52 L154 28" fill="none" stroke="#2b8dd6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M70 100 L70 230" stroke="#ffffff" stroke-opacity="0.45" stroke-width="6"/>
+      <path d="M120 95 L120 236" stroke="#ffffff" stroke-opacity="0.25" stroke-width="5"/>
+    </g>
+
+    <!-- side processing device -->
+    <g transform="translate(230,172)">
+      <path d="M0 70 L75 45 L150 56 L152 195 L75 217 L0 204 Z" fill="url(#darkPanel)" stroke="#536475" stroke-width="4"/>
+      <path d="M75 45 L100 15 L174 22 L150 56 Z" fill="#f3f5f8" stroke="#536475" stroke-width="4"/>
+      <path d="M152 56 L174 22 L174 160 L152 195 Z" fill="#c7ced8" stroke="#536475" stroke-width="4"/>
+      <rect x="53" y="72" width="56" height="32" rx="3" fill="url(#screen)" stroke="#d3e8f8" stroke-width="2"/>
+      <g fill="#e9eef4">
+        <rect x="25" y="118" width="38" height="5" rx="2"/>
+        <rect x="25" y="133" width="38" height="5" rx="2"/>
+        <rect x="25" y="148" width="38" height="5" rx="2"/>
+        <rect x="72" y="118" width="20" height="5" rx="2"/>
+        <rect x="72" y="133" width="20" height="5" rx="2"/>
+        <rect x="72" y="148" width="20" height="5" rx="2"/>
+      </g>
+      <circle cx="98" cy="126" r="9" fill="#8fb5d2"/>
+      <rect x="78" y="152" width="19" height="12" rx="3" fill="#97c0df"/>
+    </g>
+
+    <!-- monitor -->
+    <g transform="translate(392,120)">
+      <rect x="0" y="40" width="112" height="92" rx="6" fill="url(#screen)" stroke="#536475" stroke-width="5"/>
+      <path d="M15 55 C35 45, 62 48, 100 56 L100 95 L15 95 Z" fill="#9bdbff" opacity="0.23"/>
+      <rect x="48" y="132" width="15" height="33" rx="4" fill="#4f6072"/>
+      <rect x="18" y="164" width="76" height="12" rx="5" fill="#2d4055"/>
+    </g>
+
+    <!-- keyboard -->
+    <g transform="translate(378,292)">
+      <path d="M0 0 L110 0 L135 28 L28 28 Z" fill="#d8dde4" stroke="#536475" stroke-width="4"/>
+      <g stroke="#7d8d9b" stroke-width="2">
+        <line x1="18" y1="8" x2="28" y2="8"/>
+        <line x1="34" y1="8" x2="44" y2="8"/>
+        <line x1="50" y1="8" x2="60" y2="8"/>
+        <line x1="66" y1="8" x2="76" y2="8"/>
+        <line x1="82" y1="8" x2="92" y2="8"/>
+        <line x1="22" y1="18" x2="32" y2="18"/>
+        <line x1="38" y1="18" x2="48" y2="18"/>
+        <line x1="54" y1="18" x2="64" y2="18"/>
+        <line x1="70" y1="18" x2="80" y2="18"/>
+      </g>
+    </g>
+
+    <!-- tower -->
+    <g transform="translate(520,108)">
+      <rect x="0" y="0" width="72" height="190" rx="8" fill="url(#darkPanel)" stroke="#536475" stroke-width="5"/>
+      <rect x="12" y="18" width="45" height="22" rx="3" fill="#2c3947"/>
+      <circle cx="36" cy="80" r="8" fill="#2490df"/>
+      <circle cx="36" cy="132" r="8" fill="#6abaf3"/>
+      <circle cx="55" cy="176" r="7" fill="#2ba2f0"/>
+    </g>
+  </g>
+</svg>
