@@ -107,6 +107,7 @@ export default function FormZayavki() {
                 device_serial: formData.get("device_serial"),
                 device_issue: formData.get("device_issue"),
                 contact_person: formData.get("contact_person"),
+                urgency: formData.get("urgency"),
                 device_photo: photoPayload,
                 created_by: createdBy,
             };
@@ -338,6 +339,18 @@ export default function FormZayavki() {
                                     name="device_photo"
                                     accept="image/*"
                                 />
+                            </div>
+                        </div>
+                        <div className="field">
+                            <label className="label">Срочность</label>
+                            <div className="control">
+                                <div className="select">
+                                    <select name="urgency" required defaultValue="">
+                                        <option value="">Выбрать срочность</option>
+                                        <option value="urgent">Срочно</option>
+                                        <option value="not_urgent">Не срочно</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>

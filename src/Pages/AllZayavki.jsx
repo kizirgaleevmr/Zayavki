@@ -33,6 +33,7 @@ export default function AllZayavki() {
         device_serial: "",
         device_issue: "",
         contact_person: "",
+        urgency: "not_urgent",
         ksa_address: "",
     });
     const [deletingId, setDeletingId] = useState("");
@@ -52,6 +53,10 @@ export default function AllZayavki() {
         scanner: "Сканер",
         pc: "ПК",
         other: "Другое",
+    };
+    const urgencyLabels = {
+        urgent: "Срочно",
+        not_urgent: "Не срочно",
     };
 
     const getAllZayavki = useCallback(
@@ -139,7 +144,37 @@ export default function AllZayavki() {
         return () => clearInterval(timerId);
     }, [getAllZayavki]);
 
-    function getRowHighlight(item) {
+    function getUrgencyValue(item) {
+        return item?.urgency === "urgent" ? "urgent" : "not_urgent";
+    }
+
+    function getUrgencyLabel(item) {
+        return urgencyLabels[getUrgencyValue(item)];
+    }
+
+    function getUrgencyTagClass(item) {
+        return getUrgencyValue(item) === "urgent"
+            ? "z-urgency-tag-urgent"
+            : "z-urgency-tag-normal";
+    }
+
+    function getRowClassName(item) {
+        if (getUrgencyValue(item) === "urgent") {
+            return "z-row-urgent";
+        }
+
+        const decision = (item.decision || "").trim();
+        return decision && decision !== "-" ? "z-row-resolved" : "z-row-open";
+    }
+
+    function getCardStyle(item) {
+        if (getUrgencyValue(item) === "urgent") {
+            return {
+                backgroundColor: "#fff1e7",
+                borderColor: "rgba(217, 120, 61, 0.24)",
+            };
+        }
+
         const decision = (item.decision || "").trim();
         return decision && decision !== "-"
             ? { backgroundColor: "#e8f8ee" }
@@ -210,6 +245,7 @@ export default function AllZayavki() {
             device_serial: item.device_serial || "",
             device_issue: item.device_issue || "",
             contact_person: item.contact_person || "",
+            urgency: item.urgency || "not_urgent",
             ksa_address: item.ksa_address || "",
         });
         setEditError("");
@@ -226,6 +262,7 @@ export default function AllZayavki() {
             device_serial: "",
             device_issue: "",
             contact_person: "",
+            urgency: "not_urgent",
             ksa_address: "",
         });
     }
@@ -277,6 +314,7 @@ strong { display: inline-block; min-width: 180px; }
 <p><strong>Тип устройства:</strong> ${deviceTypeValue}</p>
 <p><strong>Наименование:</strong> ${detailsZayavka.device_name || "-"}</p>
 <p><strong>Серийный номер:</strong> ${detailsZayavka.device_serial || "-"}</p>
+<p><strong>Срочность:</strong> ${getUrgencyLabel(detailsZayavka)}</p>
 <p><strong>Контактное лицо:</strong> ${detailsZayavka.contact_person || "-"}</p>
 <p><strong>Неисправность:</strong> ${detailsZayavka.device_issue || "-"}</p>
 <p><strong>Решение:</strong> ${detailsZayavka.decision || "-"}</p>
@@ -351,6 +389,7 @@ ${photoBlock}
                 device_serial: editForm.device_serial,
                 device_issue: editForm.device_issue,
                 contact_person: editForm.contact_person,
+                urgency: editForm.urgency,
                 ksa_address: editForm.ksa_address,
             };
 
@@ -501,6 +540,7 @@ ${photoBlock}
                 { header: "Тип устройства", key: "deviceType", width: 18 },
                 { header: "Наименование", key: "deviceName", width: 28 },
                 { header: "Серийный номер", key: "deviceSerial", width: 22 },
+                { header: "Срочность", key: "urgency", width: 16 },
                 { header: "Контактное лицо", key: "contactPerson", width: 24 },
                 { header: "Решение", key: "decision", width: 30 },
                 { header: "Дата решения", key: "decisionDate", width: 16 },
@@ -521,6 +561,7 @@ ${photoBlock}
                         "-",
                     deviceName: item.device_name || "-",
                     deviceSerial: item.device_serial || "-",
+                    urgency: getUrgencyLabel(item),
                     contactPerson: item.contact_person || "-",
                     decision: item.decision || "-",
                     decisionDate: item.decision_date
@@ -673,6 +714,7 @@ ${photoBlock}
                                     <th>Тип устройства</th>
                                     <th>Наименование</th>
                                     <th>Серийный номер</th>
+                                    <th>Срочность</th>
                                     <th>Неисправность</th>
 
                                     <th>Кто завел заявку</th>
@@ -684,10 +726,8 @@ ${photoBlock}
                                 {zayavki.map((item) => (
                                     <tr
                                         key={item._id}
-                                        style={{
-                                            cursor: "pointer",
-                                            ...getRowHighlight(item),
-                                        }}
+                                        className={getRowClassName(item)}
+                                        style={{ cursor: "pointer" }}
                                         onClick={() => openDecisionModal(item)}
                                     >
                                         <td>
@@ -740,6 +780,11 @@ ${photoBlock}
                                         </td>
                                         <td>{item.device_name || "-"}</td>
                                         <td>{item.device_serial || "-"}</td>
+                                        <td>
+                                            <span className={`tag ${getUrgencyTagClass(item)}`}>
+                                                {getUrgencyLabel(item)}
+                                            </span>
+                                        </td>
                                         <td>{item.device_issue || "-"}</td>
 
                                         <td>
@@ -897,8 +942,12 @@ ${photoBlock}
                         {zayavki.map((item) => (
                             <article
                                 key={item._id}
-                                className="zayavka-card"
-                                style={getRowHighlight(item)}
+                                className={`zayavka-card ${
+                                    getUrgencyValue(item) === "urgent"
+                                        ? "zayavka-card-urgent"
+                                        : ""
+                                }`}
+                                style={getCardStyle(item)}
                             >
                                 <div className="zayavka-card-head">
                                     <p className="zayavka-card-date">
@@ -919,6 +968,9 @@ ${photoBlock}
                                             item.ksa_name ||
                                             item.ksa_id ||
                                             "-"}
+                                    </span>
+                                    <span className={`tag ${getUrgencyTagClass(item)}`}>
+                                        {getUrgencyLabel(item)}
                                     </span>
                                 </div>
 
@@ -957,6 +1009,10 @@ ${photoBlock}
                                         <p>
                                             <strong>Серийный:</strong>{" "}
                                             {item.device_serial || "-"}
+                                        </p>
+                                        <p>
+                                            <strong>Срочность:</strong>{" "}
+                                            {getUrgencyLabel(item)}
                                         </p>
                                         <p>
                                             <strong>Неисправность:</strong>{" "}
@@ -1225,6 +1281,10 @@ ${photoBlock}
                                     {detailsZayavka.device_serial || "-"}
                                 </p>
                                 <p>
+                                    <strong>Срочность:</strong>{" "}
+                                    {getUrgencyLabel(detailsZayavka)}
+                                </p>
+                                <p>
                                     <strong>Контактное лицо:</strong>{" "}
                                     {detailsZayavka.contact_person || "-"}
                                 </p>
@@ -1363,6 +1423,25 @@ ${photoBlock}
                                         }))
                                     }
                                 />
+                            </div>
+                        </div>
+                        <div className="field">
+                            <label className="label">Срочность</label>
+                            <div className="control">
+                                <div className="select is-fullwidth">
+                                    <select
+                                        value={editForm.urgency}
+                                        onChange={(e) =>
+                                            setEditForm((prev) => ({
+                                                ...prev,
+                                                urgency: e.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="urgent">Срочно</option>
+                                        <option value="not_urgent">Не срочно</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div className="field">

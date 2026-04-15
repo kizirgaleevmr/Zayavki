@@ -110,6 +110,11 @@ const zayavkaScheme = new Schema(
         device_serial: { type: String, required: true },
         device_issue: { type: String, required: true },
         contact_person: { type: String, required: true },
+        urgency: {
+            type: String,
+            enum: ["urgent", "not_urgent"],
+            default: "not_urgent",
+        },
         decision: { type: String, default: "" },
         decision_date: { type: Date, default: null },
         device_photo: {
@@ -181,12 +186,18 @@ function escapeRegex(value) {
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function normalizeUrgency(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    return normalized === "urgent" ? "urgent" : "not_urgent";
+}
+
 function enrichZayavka(zayavka, regionById, ksaById) {
     const regionItem = regionById.get(String(zayavka.region_id));
     const ksaItem = ksaById.get(String(zayavka.ksa_id));
 
     return {
         ...zayavka,
+        urgency: normalizeUrgency(zayavka.urgency),
         region_name: regionItem?.reg_naimenovanie || "",
         ksa_number: ksaItem?.nomer_ksa || "",
         ksa_name: ksaItem?.ksa_naimenovanie || "",
@@ -394,6 +405,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             device_serial,
             device_issue,
             contact_person,
+            urgency,
             device_photo,
             created_by,
         } = req.body;
@@ -422,6 +434,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             device_serial,
             device_issue,
             contact_person,
+            urgency: normalizeUrgency(urgency),
             device_photo: device_photo || null,
             created_by: created_by || "-",
         });
@@ -641,6 +654,7 @@ app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
             device_serial,
             device_issue,
             contact_person,
+            urgency,
             ksa_address,
         } = req.body;
 
@@ -662,6 +676,7 @@ app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
             device_serial: String(device_serial).trim(),
             device_issue: String(device_issue).trim(),
             contact_person: String(contact_person).trim(),
+            urgency: normalizeUrgency(urgency),
             ksa_address: String(ksa_address || "").trim(),
         };
 

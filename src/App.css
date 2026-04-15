@@ -246,9 +246,11 @@ main.mt-4 {
     margin-left: 10px !important;
 }
 
-.zayavki-page > .button a {
-    display: block;
-    width: 100%;
+.zayavki-page > .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .zayavki-page > .button:hover {
@@ -256,8 +258,11 @@ main.mt-4 {
     background: #ffffff !important;
 }
 
-.zayavki-page > .button .active {
-    color: var(--accent-strong);
+.zayavki-page > .button.is-active-route,
+.zayavki-page > .button.is-active-route:hover {
+    border-color: rgba(15, 118, 110, 0.22) !important;
+    background: linear-gradient(135deg, var(--accent), #147f74) !important;
+    color: #ffffff !important;
 }
 
 .zayavki-page > main {
@@ -730,6 +735,24 @@ main.mt-4 {
     filter: brightness(0.99);
 }
 
+.all-zayavki-page .table tbody tr.z-row-open td {
+    background: rgba(253, 238, 238, 0.94);
+}
+
+.all-zayavki-page .table tbody tr.z-row-resolved td {
+    background: rgba(232, 248, 238, 0.96);
+}
+
+.all-zayavki-page .table tbody tr.z-row-urgent td {
+    background: rgba(255, 241, 231, 0.98);
+    border-top-color: rgba(217, 120, 61, 0.22);
+    border-bottom-color: rgba(217, 120, 61, 0.22);
+}
+
+.all-zayavki-page .table tbody tr.z-row-urgent td:first-child {
+    box-shadow: inset 4px 0 0 #d9783d;
+}
+
 .all-zayavki-page .table thead th:nth-child(1),
 .all-zayavki-page .table tbody td:nth-child(1) {
     width: 72px;
@@ -777,28 +800,34 @@ main.mt-4 {
 
 .all-zayavki-page .table thead th:nth-child(8),
 .all-zayavki-page .table tbody td:nth-child(8) {
-    width: 15%;
+    width: 108px;
+    text-align: center;
 }
 
 .all-zayavki-page .table thead th:nth-child(9),
 .all-zayavki-page .table tbody td:nth-child(9) {
-    width: 9%;
+    width: 15%;
 }
 
 .all-zayavki-page .table thead th:nth-child(10),
 .all-zayavki-page .table tbody td:nth-child(10) {
-    width: 15%;
+    width: 9%;
 }
 
 .all-zayavki-page .table thead th:nth-child(11),
 .all-zayavki-page .table tbody td:nth-child(11) {
+    width: 15%;
+}
+
+.all-zayavki-page .table thead th:nth-child(12),
+.all-zayavki-page .table tbody td:nth-child(12) {
     width: 116px;
     text-align: center;
     white-space: nowrap;
 }
 
 .all-zayavki-page .table tbody td:nth-child(2),
-.all-zayavki-page .table tbody td:nth-child(10) .is-size-7 {
+.all-zayavki-page .table tbody td:nth-child(11) .is-size-7 {
     font-size: 0.82em;
     line-height: 1.35;
 }
@@ -811,11 +840,11 @@ main.mt-4 {
     margin: 0 auto;
 }
 
-.all-zayavki-page .table tbody td:nth-child(11) {
+.all-zayavki-page .table tbody td:nth-child(12) {
     padding-inline: 6px;
 }
 
-.all-zayavki-page .table tbody td:nth-child(11) .zayavki-row-actions {
+.all-zayavki-page .table tbody td:nth-child(12) .zayavki-row-actions {
     justify-content: center;
 }
 
@@ -837,6 +866,16 @@ main.mt-4 {
 .all-zayavki-page .tag.is-light {
     background: rgba(255, 255, 255, 0.8);
     color: var(--text-soft);
+}
+
+.all-zayavki-page .tag.z-urgency-tag-urgent {
+    background: rgba(188, 79, 95, 0.16);
+    color: #9a3041;
+}
+
+.all-zayavki-page .tag.z-urgency-tag-normal {
+    background: rgba(15, 118, 110, 0.12);
+    color: var(--accent-strong);
 }
 
 .all-zayavki-page .zayavki-row-actions {
@@ -901,6 +940,9 @@ main.mt-4 {
     box-shadow: 0 12px 22px rgba(20, 43, 52, 0.08);
 }
 
+.all-zayavki-page .zayavka-card-urgent {
+    box-shadow: 0 14px 26px rgba(217, 120, 61, 0.12);
+}
 .all-zayavki-page .zayavka-card-head {
     display: flex;
     justify-content: space-between;
