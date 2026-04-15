@@ -49,58 +49,84 @@ export default function FormAuth() {
 
     return (
         <section className="auth">
-            <form className="form-control box is-radiusle" onSubmit={submitClick}>
-                <label className="label">Авторизуйтесь</label>
-                <div className="field">
-                    <p className="control has-icons-left has-icons-right">
-                        <input
-                            name="login"
-                            className="input"
-                            type="text"
-                            placeholder="логин"
-                            value={login}
-                            onChange={(e) => setLogin(e.target.value)}
-                            required
-                        />
-                        <span className="icon is-small is-left">
-                            <i className="fas fa-envelope"></i>
-                        </span>
-                        <span className="icon is-small is-right">
-                            <i className="fas fa-check"></i>
-                        </span>
+            <div className="auth-shell">
+                <div className="auth-copy">
+                    <p className="auth-badge">SERVICE DESK</p>
+                    <h1 className="auth-title">Авторизация</h1>
+                    <p className="auth-subtitle">
+                        Войдите в систему, чтобы создавать, отслеживать и
+                        обрабатывать заявки.
                     </p>
                 </div>
-                <div className="field">
-                    <p className="control has-icons-left">
-                        <input
-                            name="passw"
-                            className="input"
-                            type="password"
-                            placeholder="пароль"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                        <span className="icon is-small is-left">
-                            <i className="fas fa-lock"></i>
-                        </span>
-                    </p>
-                </div>
-                {error ? <p className="help is-danger mb-3">{error}</p> : null}
-                <div className="field">
-                    <p className="control">
-                        <button
-                            type="submit"
-                            className={`button is-success has-text-white ${
-                                isLoading ? "is-loading" : ""
-                            }`}
-                            disabled={isLoading}
-                        >
-                            Войти
-                        </button>
-                    </p>
-                </div>
-            </form>
+
+                <form className="form-control box auth-form" onSubmit={submitClick}>
+                    <label className="label auth-form-title">
+                        Авторизуйтесь
+                    </label>
+
+                    <div className="field auth-field">
+                        <label className="label auth-field-label" htmlFor="login">
+                            Логин
+                        </label>
+                        <p className="control">
+                            <span className="auth-field-icon" aria-hidden="true">
+                                @
+                            </span>
+                            <input
+                                id="login"
+                                name="login"
+                                className="input auth-input"
+                                type="text"
+                                placeholder="Введите логин"
+                                value={login}
+                                onChange={(e) => setLogin(e.target.value)}
+                                autoComplete="username"
+                                required
+                            />
+                        </p>
+                    </div>
+
+                    <div className="field auth-field">
+                        <label className="label auth-field-label" htmlFor="password">
+                            Пароль
+                        </label>
+                        <p className="control">
+                            <span className="auth-field-icon" aria-hidden="true">
+                                *
+                            </span>
+                            <input
+                                id="password"
+                                name="passw"
+                                className="input auth-input"
+                                type="password"
+                                placeholder="Введите пароль"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoComplete="current-password"
+                                required
+                            />
+                        </p>
+                    </div>
+
+                    {error ? (
+                        <p className="help is-danger mb-3 auth-error">{error}</p>
+                    ) : null}
+
+                    <div className="field auth-actions">
+                        <p className="control">
+                            <button
+                                type="submit"
+                                className={`button is-success has-text-white auth-submit ${
+                                    isLoading ? "is-loading" : ""
+                                }`}
+                                disabled={isLoading}
+                            >
+                                Войти
+                            </button>
+                        </p>
+                    </div>
+                </form>
+            </div>
         </section>
     );
 }
