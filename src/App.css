@@ -741,6 +741,13 @@ main.mt-4 {
     width: 132px;
 }
 
+.all-zayavki-page .table tbody td:nth-child(2) {
+    width: 96px;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
 .all-zayavki-page .table thead th:nth-child(3),
 .all-zayavki-page .table tbody td:nth-child(3) {
     width: 88px;
