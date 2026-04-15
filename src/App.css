@@ -698,13 +698,25 @@ main.mt-4 {
 }
 
 .all-zayavki-page .table tbody td {
-    padding: 12px 10px;
+    padding: 8px 10px;
     background: rgba(255, 255, 255, 0.9);
     border-top: 1px solid rgba(24, 54, 64, 0.12);
     border-bottom: 1px solid rgba(24, 54, 64, 0.12);
     color: #163640;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.all-zayavki-page .z-table-ellipsis {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.all-zayavki-page .z-table-ellipsis-wide {
+    max-width: 220px;
 }
 
 .all-zayavki-page .table tbody td .has-text-grey {
@@ -833,10 +845,10 @@ main.mt-4 {
 }
 
 .all-zayavki-page .table tbody td:nth-child(3) img {
-    width: min(100%, 56px) !important;
-    height: 56px !important;
+    width: min(100%, 42px) !important;
+    height: 42px !important;
     object-fit: cover;
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     margin: 0 auto;
 }
 

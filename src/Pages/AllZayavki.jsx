@@ -766,36 +766,56 @@ ${photoBlock}
                                             )}
                                         </td>
                                         <td>
-                                            {item.ksa_number ||
-                                                item.ksa_name ||
-                                                item.ksa_id ||
-                                                "-"}
+                                            <div className="z-table-ellipsis">
+                                                {item.ksa_number ||
+                                                    item.ksa_name ||
+                                                    item.ksa_id ||
+                                                    "-"}
+                                            </div>
                                         </td>
                                         <td>
-                                            {deviceTypeLabels[
-                                                item.device_type
-                                            ] ||
-                                                item.device_type ||
-                                                "-"}
+                                            <div className="z-table-ellipsis">
+                                                {deviceTypeLabels[
+                                                    item.device_type
+                                                ] ||
+                                                    item.device_type ||
+                                                    "-"}
+                                            </div>
                                         </td>
-                                        <td>{item.device_name || "-"}</td>
-                                        <td>{item.device_serial || "-"}</td>
+                                        <td>
+                                            <div className="z-table-ellipsis">
+                                                {item.device_name || "-"}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="z-table-ellipsis">
+                                                {item.device_serial || "-"}
+                                            </div>
+                                        </td>
                                         <td>
                                             <span className={`tag ${getUrgencyTagClass(item)}`}>
                                                 {getUrgencyLabel(item)}
                                             </span>
                                         </td>
-                                        <td>{item.device_issue || "-"}</td>
+                                        <td>
+                                            <div className="z-table-ellipsis z-table-ellipsis-wide">
+                                                {item.device_issue || "-"}
+                                            </div>
+                                        </td>
 
                                         <td>
-                                            {item.created_by ||
-                                                item.createdBy ||
-                                                item.author ||
-                                                "-"}
+                                            <div className="z-table-ellipsis">
+                                                {item.created_by ||
+                                                    item.createdBy ||
+                                                    item.author ||
+                                                    "-"}
+                                            </div>
                                         </td>
                                         <td>
-                                            <div>{item.decision || "-"}</div>
-                                            <div className="is-size-7 has-text-grey">
+                                            <div className="z-table-ellipsis z-table-ellipsis-wide">
+                                                {item.decision || "-"}
+                                            </div>
+                                            <div className="is-size-7 has-text-grey z-table-ellipsis">
                                                 Дата решения:{" "}
                                                 {item.decision_date
                                                     ? new Date(
