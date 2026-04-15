@@ -672,13 +672,13 @@ main.mt-4 {
     background: transparent;
     border-collapse: separate;
     border-spacing: 0 10px;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .all-zayavki-page .table thead th {
     border: none;
     padding: 0 10px 10px;
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: var(--text-soft);
     white-space: normal;
