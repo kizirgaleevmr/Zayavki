@@ -460,29 +460,41 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
         const search = String(req.query.search || "").trim();
         const skip = (page - 1) * limit;
 
-        const mongoFilter = {};
+        const mongoFilters = [];
         if (status === "resolved") {
-            mongoFilter.decision = { $nin: ["", "-", null] };
+            mongoFilters.push({
+                decision: { $nin: ["", "-", null] },
+            });
         } else if (status === "unresolved") {
-            mongoFilter.$or = [
-                { decision: { $exists: false } },
-                { decision: null },
-                { decision: "" },
-                { decision: "-" },
-            ];
+            mongoFilters.push({
+                $or: [
+                    { decision: { $exists: false } },
+                    { decision: null },
+                    { decision: "" },
+                    { decision: "-" },
+                ],
+            });
         }
         if (search) {
             const regex = new RegExp(escapeRegex(search), "i");
-            mongoFilter.$or = [
-                ...(mongoFilter.$or || []),
-                { device_serial: regex },
-                { device_name: regex },
-                { device_issue: regex },
-                { contact_person: regex },
-                { ksa_id: regex },
-                { ksa_address: regex },
-            ];
+            mongoFilters.push({
+                $or: [
+                    { device_serial: regex },
+                    { device_name: regex },
+                    { device_issue: regex },
+                    { contact_person: regex },
+                    { ksa_id: regex },
+                    { ksa_address: regex },
+                ],
+            });
         }
+
+        const mongoFilter =
+            mongoFilters.length === 0
+                ? {}
+                : mongoFilters.length === 1
+                  ? mongoFilters[0]
+                  : { $and: mongoFilters };
 
         const totalFromModel = await Zayavka.countDocuments(mongoFilter);
         let zayavkiPage = [];
