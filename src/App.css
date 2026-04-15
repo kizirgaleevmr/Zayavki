@@ -671,11 +671,16 @@ main.mt-4 {
 
 .all-zayavki-page .table tbody td {
     padding: 12px 10px;
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.9);
     border-top: 1px solid rgba(24, 54, 64, 0.12);
     border-bottom: 1px solid rgba(24, 54, 64, 0.12);
+    color: #163640;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.all-zayavki-page .table tbody td .has-text-grey {
+    color: #4f6770 !important;
 }
 
 .all-zayavki-page .table tbody td:first-child {
@@ -702,66 +707,67 @@ main.mt-4 {
 
 .all-zayavki-page .table thead th:nth-child(1),
 .all-zayavki-page .table tbody td:nth-child(1) {
-    width: 6%;
+    width: 72px;
     text-align: center;
     white-space: nowrap;
 }
 
 .all-zayavki-page .table thead th:nth-child(2),
 .all-zayavki-page .table tbody td:nth-child(2) {
-    width: 10%;
+    width: 132px;
 }
 
 .all-zayavki-page .table thead th:nth-child(3),
 .all-zayavki-page .table tbody td:nth-child(3) {
-    width: 7%;
+    width: 88px;
     text-align: center;
 }
 
 .all-zayavki-page .table thead th:nth-child(4),
 .all-zayavki-page .table tbody td:nth-child(4) {
-    width: 7%;
+    width: 104px;
 }
 
 .all-zayavki-page .table thead th:nth-child(5),
 .all-zayavki-page .table tbody td:nth-child(5) {
-    width: 8%;
+    width: 112px;
 }
 
 .all-zayavki-page .table thead th:nth-child(6),
 .all-zayavki-page .table tbody td:nth-child(6) {
-    width: 10%;
+    width: 144px;
 }
 
 .all-zayavki-page .table thead th:nth-child(7),
 .all-zayavki-page .table tbody td:nth-child(7) {
-    width: 10%;
+    width: 144px;
 }
 
 .all-zayavki-page .table thead th:nth-child(8),
 .all-zayavki-page .table tbody td:nth-child(8) {
-    width: 13%;
+    width: 15%;
 }
 
 .all-zayavki-page .table thead th:nth-child(9),
 .all-zayavki-page .table tbody td:nth-child(9) {
-    width: 9%;
+    width: 11%;
 }
 
 .all-zayavki-page .table thead th:nth-child(10),
 .all-zayavki-page .table tbody td:nth-child(10) {
-    width: 8%;
+    width: 9%;
 }
 
 .all-zayavki-page .table thead th:nth-child(11),
 .all-zayavki-page .table tbody td:nth-child(11) {
-    width: 13%;
+    width: 15%;
 }
 
 .all-zayavki-page .table thead th:nth-child(12),
 .all-zayavki-page .table tbody td:nth-child(12) {
-    width: 9%;
+    width: 116px;
     text-align: center;
+    white-space: nowrap;
 }
 
 .all-zayavki-page .table tbody td:nth-child(2),
@@ -776,6 +782,10 @@ main.mt-4 {
     object-fit: cover;
     border-radius: 10px !important;
     margin: 0 auto;
+}
+
+.all-zayavki-page .table tbody td:nth-child(12) {
+    padding-inline: 6px;
 }
 
 .all-zayavki-page .table tbody td:nth-child(12) .zayavki-row-actions {
@@ -803,21 +813,46 @@ main.mt-4 {
 }
 
 .all-zayavki-page .zayavki-row-actions {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    max-width: 100%;
+    padding: 3px;
+    box-sizing: border-box;
     border-radius: 999px;
-    border: 1px solid rgba(24, 54, 64, 0.1);
-    background: rgba(255, 255, 255, 0.56);
+    border: 1px solid rgba(24, 54, 64, 0.12);
+    background: rgba(255, 255, 255, 0.82);
+    overflow: hidden;
 }
 
 .all-zayavki-page .z-action-btn {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
     padding: 0;
+    border-radius: 10px !important;
     box-shadow: none !important;
+}
+
+.all-zayavki-page .z-action-btn .z-action-icon {
+    width: 15px;
+    height: 15px;
+    display: block;
+    flex: none;
+}
+
+.all-zayavki-page .z-action-btn-view {
+    color: #315867 !important;
+}
+
+.all-zayavki-page .z-action-btn-edit {
+    color: #0c6d73 !important;
+}
+
+.all-zayavki-page .z-action-btn-delete {
+    color: #b64657 !important;
 }
 
 .all-zayavki-page .zayavki-desktop-view {

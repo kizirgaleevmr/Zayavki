@@ -765,7 +765,7 @@ ${photoBlock}
                                             <div className="zayavki-row-actions">
                                                 <button
                                                     type="button"
-                                                    className="button is-small is-light is-rounded z-action-btn"
+                                                    className="button is-small is-light is-rounded z-action-btn z-action-btn-view"
                                                     onClick={(evt) =>
                                                         openDetailsModal(
                                                             item,
@@ -776,20 +776,31 @@ ${photoBlock}
                                                     aria-label="Подробно"
                                                 >
                                                     <svg
+                                                        className="z-action-icon"
                                                         viewBox="0 0 24 24"
-                                                        width="14"
-                                                        height="14"
                                                         aria-hidden="true"
                                                     >
                                                         <path
-                                                            fill="currentColor"
-                                                            d="M11 7h2V5h-2zm0 12h2V9h-2zm1-17A10 10 0 1 0 12 22 10 10 0 0 0 12 2zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"
+                                                            d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.8"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                        <circle
+                                                            cx="12"
+                                                            cy="12"
+                                                            r="3"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.8"
                                                         />
                                                     </svg>
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    className="button is-small is-link is-light is-rounded z-action-btn"
+                                                    className="button is-small is-link is-light is-rounded z-action-btn z-action-btn-edit"
                                                     onClick={(evt) =>
                                                         openEditModal(item, evt)
                                                     }
@@ -797,20 +808,31 @@ ${photoBlock}
                                                     aria-label="Редактировать"
                                                 >
                                                     <svg
+                                                        className="z-action-icon"
                                                         viewBox="0 0 24 24"
-                                                        width="14"
-                                                        height="14"
                                                         aria-hidden="true"
                                                     >
                                                         <path
-                                                            fill="currentColor"
-                                                            d="m3 17.25 9.06-9.06 3.75 3.75L6.75 21H3zM20.71 7.04a1 1 0 0 0 0-1.41L18.37 3.3a1 1 0 0 0-1.41 0l-1.59 1.59 3.75 3.75z"
+                                                            d="M12 20h9"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.8"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                        <path
+                                                            d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.8"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
                                                         />
                                                     </svg>
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    className={`button is-small is-danger is-light is-rounded z-action-btn ${
+                                                    className={`button is-small is-danger is-light is-rounded z-action-btn z-action-btn-delete ${
                                                         deletingId === item._id
                                                             ? "is-loading"
                                                             : ""
@@ -825,14 +847,41 @@ ${photoBlock}
                                                     aria-label="Удалить"
                                                 >
                                                     <svg
+                                                        className="z-action-icon"
                                                         viewBox="0 0 24 24"
-                                                        width="14"
-                                                        height="14"
                                                         aria-hidden="true"
                                                     >
                                                         <path
-                                                            fill="currentColor"
-                                                            d="M9 3h6l1 2h4v2H4V5h4zm1 6h2v9h-2zm4 0h2v9h-2zM7 9h2v9H7z"
+                                                            d="M3 6h18"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.8"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                        <path
+                                                            d="M8 6V4h8v2"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.8"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                        <path
+                                                            d="M19 6l-1 14H6L5 6"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.8"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                        <path
+                                                            d="M10 11v5M14 11v5"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="1.8"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
                                                         />
                                                     </svg>
                                                 </button>
