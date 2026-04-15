@@ -175,6 +175,10 @@ export default function AllZayavki() {
         return decision && decision !== "-" ? "z-row-resolved" : "z-row-open";
     }
 
+    function getCreatedByLabel(item) {
+        return item?.created_by || item?.createdBy || item?.author || "-";
+    }
+
     function getCardStyle(item) {
         if (getUrgencyValue(item) === "urgent") {
             return {
@@ -733,8 +737,6 @@ ${photoBlock}
                                     <th>Срочность</th>
                                     <th>Неисправность</th>
 
-                                    <th>Кто завел заявку</th>
-                                    <th>Решение</th>
                                     <th>Действия</th>
                                 </tr>
                             </thead>
@@ -819,29 +821,6 @@ ${photoBlock}
                                             </div>
                                         </td>
 
-                                        <td>
-                                            <div className="z-table-ellipsis">
-                                                {item.created_by ||
-                                                    item.createdBy ||
-                                                    item.author ||
-                                                    "-"}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="z-table-ellipsis z-table-ellipsis-wide">
-                                                {item.decision || "-"}
-                                            </div>
-                                            <div className="is-size-7 has-text-grey z-table-ellipsis">
-                                                Дата решения:{" "}
-                                                {item.decision_date
-                                                    ? new Date(
-                                                          item.decision_date,
-                                                      ).toLocaleDateString(
-                                                          "ru-RU",
-                                                      )
-                                                    : "-"}
-                                            </div>
-                                        </td>
                                         <td>
                                             <div className="zayavki-row-actions">
                                                 <button
@@ -1323,6 +1302,10 @@ ${photoBlock}
                                 <p>
                                     <strong>Контактное лицо:</strong>{" "}
                                     {detailsZayavka.contact_person || "-"}
+                                </p>
+                                <p>
+                                    <strong>Кто завел:</strong>{" "}
+                                    {getCreatedByLabel(detailsZayavka)}
                                 </p>
                                 <p>
                                     <strong>Неисправность:</strong>{" "}

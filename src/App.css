@@ -823,23 +823,12 @@ main.mt-4 {
 
 .all-zayavki-page .table thead th:nth-child(10),
 .all-zayavki-page .table tbody td:nth-child(10) {
-    width: 9%;
-}
-
-.all-zayavki-page .table thead th:nth-child(11),
-.all-zayavki-page .table tbody td:nth-child(11) {
-    width: 15%;
-}
-
-.all-zayavki-page .table thead th:nth-child(12),
-.all-zayavki-page .table tbody td:nth-child(12) {
     width: 116px;
     text-align: center;
     white-space: nowrap;
 }
 
-.all-zayavki-page .table tbody td:nth-child(2),
-.all-zayavki-page .table tbody td:nth-child(11) .is-size-7 {
+.all-zayavki-page .table tbody td:nth-child(2) {
     font-size: 0.82em;
     line-height: 1.35;
 }
@@ -852,11 +841,11 @@ main.mt-4 {
     margin: 0 auto;
 }
 
-.all-zayavki-page .table tbody td:nth-child(12) {
+.all-zayavki-page .table tbody td:nth-child(10) {
     padding-inline: 6px;
 }
 
-.all-zayavki-page .table tbody td:nth-child(12) .zayavki-row-actions {
+.all-zayavki-page .table tbody td:nth-child(10) .zayavki-row-actions {
     justify-content: center;
 }
 
