@@ -666,9 +666,9 @@ ${photoBlock}
                         <table className="table is-fullwidth is-striped is-hoverable">
                             <thead>
                                 <tr>
-                                    <th>Номер заявки</th>
+                                    <th>№ заявки</th>
                                     <th>Дата</th>
-                                    <th>Изображение</th>
+                                    <th>Фото</th>
                                     <th>КСА</th>
                                     <th>Тип устройства</th>
                                     <th>Наименование</th>
