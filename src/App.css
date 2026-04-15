@@ -678,8 +678,8 @@ main.mt-4 {
 .all-zayavki-page .table thead th {
     border: none;
     padding: 0 10px 10px;
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-size: 0.71rem;
+    font-weight: 500;
     color: var(--text-soft);
     white-space: normal;
     overflow-wrap: anywhere;
