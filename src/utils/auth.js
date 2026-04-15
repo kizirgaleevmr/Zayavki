@@ -30,6 +30,27 @@ export function isAuthenticated() {
     return Boolean(getAuthToken());
 }
 
+function normalizeAppPath(path) {
+    return String(path || "/").startsWith("/") ? String(path) : `/${path}`;
+}
+
+export function redirectToAppPath(path, options = {}) {
+    const normalizedPath = normalizeAppPath(path);
+    const targetUrl = `${window.location.origin}${window.location.pathname}${window.location.search}#${normalizedPath}`;
+
+    if (options.replace) {
+        window.location.replace(targetUrl);
+        return;
+    }
+
+    window.location.hash = normalizedPath;
+}
+
+function getCurrentAppPath() {
+    const hash = String(window.location.hash || "").replace(/^#/, "");
+    return hash || "/";
+}
+
 export async function fetchWithAuth(input, init = {}) {
     const response = await fetch(input, {
         ...init,
@@ -41,8 +62,8 @@ export async function fetchWithAuth(input, init = {}) {
 
     if (response.status === 401) {
         clearAuthSession();
-        if (window.location.pathname !== "/auth") {
-            window.location.assign("/auth");
+        if (getCurrentAppPath() !== "/auth") {
+            redirectToAppPath("/auth", { replace: true });
         }
     }
 

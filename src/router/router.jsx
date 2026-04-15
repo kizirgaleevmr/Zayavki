@@ -1,10 +1,10 @@
 import {
-    createBrowserRouter,
+    createHashRouter,
     createRoutesFromElements,
     Navigate,
+    NavLink,
     Route,
-} from "react-router";
-import { NavLink } from "react-router";
+} from "react-router-dom";
 import FormAuth from "../Pages/auth";
 import App from "../App";
 import FormZayavki from "../Pages/FormZayavki";
@@ -12,7 +12,8 @@ import AllMessage from "../Pages/AllMessage";
 import ZayavkiPage from "../Pages/Zayavki";
 import AllZayavki from "../Pages/AllZayavki";
 import ProtectedRoute from "../Pages/ProtectedRoute";
-const route = createBrowserRouter(
+
+const route = createHashRouter(
     createRoutesFromElements(
         <>
             <Route element={<ProtectedRoute />}>
