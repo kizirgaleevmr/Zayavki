@@ -633,6 +633,7 @@ main.mt-4 {
     position: relative;
     z-index: 1;
     overflow-x: auto;
+    max-width: 100%;
     padding: 12px;
     border-radius: 24px;
     border: 1px solid var(--line);
@@ -641,33 +642,40 @@ main.mt-4 {
 }
 
 .all-zayavki-page .table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
     background: transparent;
     border-collapse: separate;
     border-spacing: 0 10px;
+    font-size: clamp(12px, 0.78vw, 14px);
 }
 
 .all-zayavki-page .table thead th {
     border: none;
-    padding: 0 16px 10px;
+    padding: 0 10px 10px;
     font-size: 0.76rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-soft);
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .all-zayavki-page .table td,
 .all-zayavki-page .table th {
-    vertical-align: middle;
+    vertical-align: top;
     line-height: 1.4;
 }
 
 .all-zayavki-page .table tbody td {
-    padding: 14px 16px;
-    background: transparent;
+    padding: 12px 10px;
+    background: rgba(255, 255, 255, 0.72);
     border-top: 1px solid rgba(24, 54, 64, 0.12);
     border-bottom: 1px solid rgba(24, 54, 64, 0.12);
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .all-zayavki-page .table tbody td:first-child {
@@ -690,6 +698,88 @@ main.mt-4 {
 .all-zayavki-page .table tbody tr:hover {
     transform: translateY(-1px);
     filter: brightness(0.99);
+}
+
+.all-zayavki-page .table thead th:nth-child(1),
+.all-zayavki-page .table tbody td:nth-child(1) {
+    width: 6%;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.all-zayavki-page .table thead th:nth-child(2),
+.all-zayavki-page .table tbody td:nth-child(2) {
+    width: 10%;
+}
+
+.all-zayavki-page .table thead th:nth-child(3),
+.all-zayavki-page .table tbody td:nth-child(3) {
+    width: 7%;
+    text-align: center;
+}
+
+.all-zayavki-page .table thead th:nth-child(4),
+.all-zayavki-page .table tbody td:nth-child(4) {
+    width: 7%;
+}
+
+.all-zayavki-page .table thead th:nth-child(5),
+.all-zayavki-page .table tbody td:nth-child(5) {
+    width: 8%;
+}
+
+.all-zayavki-page .table thead th:nth-child(6),
+.all-zayavki-page .table tbody td:nth-child(6) {
+    width: 10%;
+}
+
+.all-zayavki-page .table thead th:nth-child(7),
+.all-zayavki-page .table tbody td:nth-child(7) {
+    width: 10%;
+}
+
+.all-zayavki-page .table thead th:nth-child(8),
+.all-zayavki-page .table tbody td:nth-child(8) {
+    width: 13%;
+}
+
+.all-zayavki-page .table thead th:nth-child(9),
+.all-zayavki-page .table tbody td:nth-child(9) {
+    width: 9%;
+}
+
+.all-zayavki-page .table thead th:nth-child(10),
+.all-zayavki-page .table tbody td:nth-child(10) {
+    width: 8%;
+}
+
+.all-zayavki-page .table thead th:nth-child(11),
+.all-zayavki-page .table tbody td:nth-child(11) {
+    width: 13%;
+}
+
+.all-zayavki-page .table thead th:nth-child(12),
+.all-zayavki-page .table tbody td:nth-child(12) {
+    width: 9%;
+    text-align: center;
+}
+
+.all-zayavki-page .table tbody td:nth-child(2),
+.all-zayavki-page .table tbody td:nth-child(11) .is-size-7 {
+    font-size: 0.82em;
+    line-height: 1.35;
+}
+
+.all-zayavki-page .table tbody td:nth-child(3) img {
+    width: min(100%, 56px) !important;
+    height: 56px !important;
+    object-fit: cover;
+    border-radius: 10px !important;
+    margin: 0 auto;
+}
+
+.all-zayavki-page .table tbody td:nth-child(12) .zayavki-row-actions {
+    justify-content: center;
 }
 
 .all-zayavki-page .table img {
@@ -956,6 +1046,14 @@ main.mt-4 {
         min-width: 100%;
         flex-basis: 100%;
     }
+
+    .all-zayavki-page .zayavki-desktop-view {
+        display: none;
+    }
+
+    .all-zayavki-page .zayavki-mobile-view {
+        display: block;
+    }
 }
 
 @media (max-width: 767px) {
@@ -1034,14 +1132,6 @@ main.mt-4 {
         width: 100%;
     }
 
-    .all-zayavki-page .zayavki-desktop-view {
-        display: none;
-    }
-
-    .all-zayavki-page .zayavki-mobile-view {
-        display: block;
-    }
-
     .all-zayavki-page .zayavka-card,
     .all-zayavki-page .zayavka-card p,
     .all-zayavki-page .zayavka-card strong,
@@ -1073,3 +1163,4 @@ main.mt-4 {
         flex: 1 1 100%;
     }
 }
+
