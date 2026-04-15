@@ -36,9 +36,22 @@ body {
     font-family: var(--font-sans);
     color: var(--text-main);
     background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 32%),
-        radial-gradient(circle at right 18% bottom 10%, rgba(184, 134, 57, 0.12), transparent 30%),
-        linear-gradient(180deg, #f5f9f7 0%, var(--page-bg) 42%, var(--page-bg-deep) 100%);
+        radial-gradient(
+            circle at top left,
+            rgba(15, 118, 110, 0.18),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at right 18% bottom 10%,
+            rgba(184, 134, 57, 0.12),
+            transparent 30%
+        ),
+        linear-gradient(
+            180deg,
+            #f5f9f7 0%,
+            var(--page-bg) 42%,
+            var(--page-bg-deep) 100%
+        );
     position: relative;
 }
 
@@ -206,7 +219,11 @@ main.mt-4 {
     inset: 0;
     background:
         linear-gradient(145deg, rgba(255, 255, 255, 0.6), transparent 50%),
-        radial-gradient(circle at top right, rgba(15, 118, 110, 0.06), transparent 28%);
+        radial-gradient(
+            circle at top right,
+            rgba(15, 118, 110, 0.06),
+            transparent 28%
+        );
     pointer-events: none;
 }
 
@@ -493,8 +510,11 @@ main.mt-4 {
     padding: 38px 30px 30px;
     border-radius: 30px !important;
     border: 1px solid rgba(255, 255, 255, 0.76) !important;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 248, 247, 0.82)) !important;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.92),
+        rgba(245, 248, 247, 0.82)
+    ) !important;
     box-shadow:
         0 24px 48px rgba(20, 43, 52, 0.12),
         inset 0 1px 0 rgba(255, 255, 255, 0.92);
@@ -507,7 +527,11 @@ main.mt-4 {
     width: 170px;
     height: 170px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(15, 118, 110, 0.12), transparent 68%);
+    background: radial-gradient(
+        circle,
+        rgba(15, 118, 110, 0.12),
+        transparent 68%
+    );
     pointer-events: none;
 }
 
@@ -648,16 +672,14 @@ main.mt-4 {
     background: transparent;
     border-collapse: separate;
     border-spacing: 0 10px;
-    font-size: clamp(12px, 0.78vw, 14px);
+    font-size: 12px;
 }
 
 .all-zayavki-page .table thead th {
     border: none;
     padding: 0 10px 10px;
-    font-size: 0.76rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     color: var(--text-soft);
     white-space: normal;
     overflow-wrap: anywhere;
@@ -697,7 +719,9 @@ main.mt-4 {
 }
 
 .all-zayavki-page .table tbody tr {
-    transition: transform 0.18s ease, filter 0.18s ease;
+    transition:
+        transform 0.18s ease,
+        filter 0.18s ease;
 }
 
 .all-zayavki-page .table tbody tr:hover {
@@ -1198,4 +1222,3 @@ main.mt-4 {
         flex: 1 1 100%;
     }
 }
-
