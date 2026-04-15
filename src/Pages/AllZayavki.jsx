@@ -679,7 +679,7 @@ ${photoBlock}
                             type="text"
                             value={searchText}
                             onChange={handleSearchTextChange}
-                            placeholder="Поиск: КСА, серийный номер, контакт..."
+                            placeholder="Поиск: КСА, серийный номер, кто завел..."
                         />
                         <button
                             type="button"

@@ -3,8 +3,6 @@ import mongoose from "mongoose";
 import cors from "cors";
 import crypto from "crypto";
 import dotenv from "dotenv";
-// import * as db from "./utils/DataBaseUtils.js";
-// import bodyParser from "body-parser";
 
 dotenv.config();
 dotenv.config({ path: "./src/server/config.env" });
@@ -14,8 +12,6 @@ const app = express();
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
-// app.use(bodyParser.json());
-
 const PORT = Number(process.env.PORT) || 3002;
 const DEFAULT_DB_NAME = "zayzvki";
 const MONGO_URI_RAW =
@@ -23,7 +19,6 @@ const MONGO_URI_RAW =
 const FALLBACK_LOCAL_URI = "mongodb://127.0.0.1:27017/zayzvki";
 
 function ensureMongoDbName(uri, dbName) {
-    // already has db name in path: mongodb://host:27017/mydb or mongodb+srv://.../mydb
     if (/^mongodb(\+srv)?:\/\/[^/]+\/[^?]+/.test(uri)) {
         return uri;
     }
@@ -64,6 +59,7 @@ app.use(
         allowedHeaders: ["Content-Type", "Authorization"],
     }),
 );
+
 const AUTH_LOGIN = process.env.AUTH_LOGIN || "admin";
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD || "123456";
 const authTokens = new Set();
@@ -91,6 +87,7 @@ const regScheme = new Schema({
     reg: { type: String },
     reg_naimenovanie: { type: String },
 });
+
 const ksaScheme = new Schema({
     id_ksa: { type: String },
     reg_id: { type: String },
@@ -99,6 +96,7 @@ const ksaScheme = new Schema({
     ksa_adress: { type: String },
     work_phone: { type: String },
 });
+
 const zayavkaScheme = new Schema(
     {
         region_id: { type: String, required: true },
@@ -132,27 +130,25 @@ const Region = mongoose.model("region", regScheme);
 const Zayavka = mongoose.model("zayavka", zayavkaScheme);
 
 async function fetchRegionsSafe() {
-    let regions = await Region.find({});
+    const regions = await Region.find({});
     if (regions.length > 0) return regions;
 
     const db = mongoose.connection.db;
     const fromRegion = await db.collection("region").find({}).toArray();
     if (fromRegion.length > 0) return fromRegion;
 
-    const fromRegions = await db.collection("regions").find({}).toArray();
-    return fromRegions;
+    return db.collection("regions").find({}).toArray();
 }
 
 async function fetchKsaSafe(filter = {}) {
-    let ksa = await Ksa.find(filter);
+    const ksa = await Ksa.find(filter);
     if (ksa.length > 0) return ksa;
 
     const db = mongoose.connection.db;
     const fromKsa = await db.collection("ksa").find(filter).toArray();
     if (fromKsa.length > 0) return fromKsa;
 
-    const fromKsas = await db.collection("ksas").find(filter).toArray();
-    return fromKsas;
+    return db.collection("ksas").find(filter).toArray();
 }
 
 async function fetchZayavkiSafe() {
@@ -191,6 +187,49 @@ function normalizeUrgency(value) {
     return normalized === "urgent" ? "urgent" : "not_urgent";
 }
 
+function getCreatedByValue(item) {
+    return item?.created_by || item?.createdBy || item?.author || "";
+}
+
+function matchesSearchTerm(value, normalizedSearch) {
+    return String(value || "").toLowerCase().includes(normalizedSearch);
+}
+
+function getMatchingKsaIds(ksaList, search) {
+    const normalizedSearch = String(search || "").trim().toLowerCase();
+    if (!normalizedSearch) return [];
+
+    return ksaList
+        .filter((item) =>
+            [
+                item.id_ksa,
+                item.nomer_ksa,
+                item.ksa_naimenovanie,
+                item.ksa_adress,
+                item.ksa_address,
+            ].some((value) => matchesSearchTerm(value, normalizedSearch)),
+        )
+        .map((item) => String(item.id_ksa || "").trim())
+        .filter(Boolean);
+}
+
+function matchesZayavkaSearch(item, search) {
+    const normalizedSearch = String(search || "").trim().toLowerCase();
+    if (!normalizedSearch) return true;
+
+    return [
+        item.device_serial,
+        item.device_name,
+        item.device_issue,
+        item.contact_person,
+        item.ksa_id,
+        item.ksa_number,
+        item.ksa_name,
+        item.ksa_address,
+        getCreatedByValue(item),
+    ].some((value) => matchesSearchTerm(value, normalizedSearch));
+}
+
 function enrichZayavka(zayavka, regionById, ksaById) {
     const regionItem = regionById.get(String(zayavka.region_id));
     const ksaItem = ksaById.get(String(zayavka.ksa_id));
@@ -211,14 +250,11 @@ function enrichZayavka(zayavka, regionById, ksaById) {
 
 async function deleteZayavkaSafe(id) {
     const idString = String(id);
-
-    // 1) Try model collection first
     const deletedByModel = await Zayavka.findByIdAndDelete(idString);
     if (deletedByModel) {
         return { deleted: true, source: "model:zayavka" };
     }
 
-    // 2) Fallback collections (same list as in fetchZayavkiSafe)
     const db = mongoose.connection.db;
     const collections = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
     const filters = [{ _id: idString }];
@@ -227,16 +263,13 @@ async function deleteZayavkaSafe(id) {
         filters.push({ _id: new mongoose.Types.ObjectId(idString) });
     }
 
-    // Extra fallback for legacy documents where custom id fields were used.
     filters.push({ id: idString });
     filters.push({ id_note: idString });
     filters.push({ id_zayavka: idString });
 
     for (const collectionName of collections) {
         for (const filter of filters) {
-            const result = await db
-                .collection(collectionName)
-                .deleteOne(filter);
+            const result = await db.collection(collectionName).deleteOne(filter);
             if (result?.deletedCount > 0) {
                 return {
                     deleted: true,
@@ -258,7 +291,11 @@ async function updateZayavkaSafe(id, updateData) {
         { new: true },
     ).lean();
     if (updatedByModel) {
-        return { updated: true, source: "model:zayavka", doc: updatedByModel };
+        return {
+            updated: true,
+            source: "model:zayavka",
+            doc: updatedByModel,
+        };
     }
 
     const db = mongoose.connection.db;
@@ -275,13 +312,11 @@ async function updateZayavkaSafe(id, updateData) {
 
     for (const collectionName of collections) {
         for (const filter of filters) {
-            const result = await db
-                .collection(collectionName)
-                .findOneAndUpdate(
-                    filter,
-                    { $set: updateData },
-                    { returnDocument: "after" },
-                );
+            const result = await db.collection(collectionName).findOneAndUpdate(
+                filter,
+                { $set: updateData },
+                { returnDocument: "after" },
+            );
             const updatedDoc = result?.value || result || null;
             if (updatedDoc && updatedDoc._id) {
                 return {
@@ -317,29 +352,6 @@ async function deleteZayavkaHandler(req, res) {
         return res.status(500).json({
             message: "Ошибка удаления заявки",
         });
-    }
-}
-
-async function main() {
-    try {
-        try {
-            await mongoose.connect(MONGO_URI);
-        } catch (primaryError) {
-            console.error(
-                "[Mongo] primary connect failed:",
-                primaryError.message,
-            );
-            if (MONGO_URI !== FALLBACK_LOCAL_URI) {
-                console.log("[Mongo] trying fallback local uri...");
-                await mongoose.connect(FALLBACK_LOCAL_URI);
-            } else {
-                throw primaryError;
-            }
-        }
-        app.listen(PORT);
-        console.log(`Сервер запущен на порту ${PORT}`);
-    } catch (err) {
-        return console.log(err);
     }
 }
 
@@ -460,6 +472,21 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
         const search = String(req.query.search || "").trim();
         const skip = (page - 1) * limit;
 
+        const [regions, ksaList] = await Promise.all([
+            fetchRegionsSafe(),
+            fetchKsaSafe({}),
+        ]);
+        const regionById = new Map(
+            regions.map((regionItem) => [
+                String(regionItem.id_reg),
+                regionItem,
+            ]),
+        );
+        const ksaById = new Map(
+            ksaList.map((ksaItem) => [String(ksaItem.id_ksa), ksaItem]),
+        );
+        const matchingKsaIds = search ? getMatchingKsaIds(ksaList, search) : [];
+
         const mongoFilters = [];
         if (status === "resolved") {
             mongoFilters.push({
@@ -477,15 +504,22 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
         }
         if (search) {
             const regex = new RegExp(escapeRegex(search), "i");
+            const searchConditions = [
+                { device_serial: regex },
+                { device_name: regex },
+                { device_issue: regex },
+                { contact_person: regex },
+                { created_by: regex },
+                { ksa_id: regex },
+                { ksa_address: regex },
+            ];
+
+            if (matchingKsaIds.length > 0) {
+                searchConditions.push({ ksa_id: { $in: matchingKsaIds } });
+            }
+
             mongoFilters.push({
-                $or: [
-                    { device_serial: regex },
-                    { device_name: regex },
-                    { device_issue: regex },
-                    { contact_person: regex },
-                    { ksa_id: regex },
-                    { ksa_address: regex },
-                ],
+                $or: searchConditions,
             });
         }
 
@@ -499,6 +533,7 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
         const totalFromModel = await Zayavka.countDocuments(mongoFilter);
         let zayavkiPage = [];
         let total = totalFromModel;
+        const usedFallback = totalFromModel === 0;
 
         if (totalFromModel > 0) {
             zayavkiPage = await Zayavka.find(mongoFilter)
@@ -509,55 +544,33 @@ app.get("/zayavki", authMiddleware, async (req, res) => {
         } else {
             let allFallback = await fetchZayavkiSafe();
 
-            allFallback = allFallback.filter((item) => {
-                if (
-                    status === "resolved" &&
-                    !isResolvedDecision(item.decision)
-                ) {
-                    return false;
-                }
-                if (
-                    status === "unresolved" &&
-                    isResolvedDecision(item.decision)
-                ) {
-                    return false;
-                }
-                if (!search) return true;
-                const searchable = [
-                    item.device_serial,
-                    item.device_name,
-                    item.device_issue,
-                    item.contact_person,
-                    item.ksa_id,
-                    item.ksa_address,
-                ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .toLowerCase();
-                return searchable.includes(search.toLowerCase());
-            });
+            allFallback = allFallback
+                .map((item) => enrichZayavka(item, regionById, ksaById))
+                .filter((item) => {
+                    if (
+                        status === "resolved" &&
+                        !isResolvedDecision(item.decision)
+                    ) {
+                        return false;
+                    }
+                    if (
+                        status === "unresolved" &&
+                        isResolvedDecision(item.decision)
+                    ) {
+                        return false;
+                    }
+
+                    return matchesZayavkaSearch(item, search);
+                });
 
             total = allFallback.length;
             zayavkiPage = allFallback.slice(skip, skip + limit);
         }
 
-        const [regions, ksaList] = await Promise.all([
-            fetchRegionsSafe(),
-            fetchKsaSafe({}),
-        ]);
-
-        const regionById = new Map(
-            regions.map((regionItem) => [
-                String(regionItem.id_reg),
-                regionItem,
-            ]),
-        );
-        const ksaById = new Map(
-            ksaList.map((ksaItem) => [String(ksaItem.id_ksa), ksaItem]),
-        );
-
         const items = zayavkiPage.map((zayavka) => {
-            const enriched = enrichZayavka(zayavka, regionById, ksaById);
+            const enriched = usedFallback
+                ? zayavka
+                : enrichZayavka(zayavka, regionById, ksaById);
             if (includePhoto) {
                 return enriched;
             }
@@ -596,13 +609,7 @@ app.get("/zayavki/:id", authMiddleware, async (req, res) => {
 
         if (!zayavka) {
             const db = mongoose.connection.db;
-            const collections = [
-                "zayavki",
-                "zayavka",
-                "zayavkas",
-                "notes",
-                "note",
-            ];
+            const collections = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
             const filters = [{ _id: idString }];
 
             if (mongoose.Types.ObjectId.isValid(idString)) {
@@ -614,9 +621,7 @@ app.get("/zayavki/:id", authMiddleware, async (req, res) => {
 
             for (const collectionName of collections) {
                 for (const filter of filters) {
-                    zayavka = await db
-                        .collection(collectionName)
-                        .findOne(filter);
+                    zayavka = await db.collection(collectionName).findOne(filter);
                     if (zayavka) break;
                 }
                 if (zayavka) break;
@@ -643,9 +648,7 @@ app.get("/zayavki/:id", authMiddleware, async (req, res) => {
             ksaList.map((ksaItem) => [String(ksaItem.id_ksa), ksaItem]),
         );
 
-        return res
-            .status(200)
-            .json(enrichZayavka(zayavka, regionById, ksaById));
+        return res.status(200).json(enrichZayavka(zayavka, regionById, ksaById));
     } catch (error) {
         console.error("[GET /zayavki/:id] error:", error);
         return res.status(500).json({
@@ -815,5 +818,26 @@ app.get("/ksa", authMiddleware, async (req, res) => {
     res.send(ksa);
     return ksa;
 });
+
+async function main() {
+    try {
+        try {
+            await mongoose.connect(MONGO_URI);
+        } catch (primaryError) {
+            console.error("[Mongo] primary connect failed:", primaryError.message);
+            if (MONGO_URI !== FALLBACK_LOCAL_URI) {
+                console.log("[Mongo] trying fallback local uri...");
+                await mongoose.connect(FALLBACK_LOCAL_URI);
+            } else {
+                throw primaryError;
+            }
+        }
+
+        app.listen(PORT);
+        console.log(`Сервер запущен на порту ${PORT}`);
+    } catch (err) {
+        console.log(err);
+    }
+}
 
 main();
