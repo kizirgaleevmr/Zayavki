@@ -12,6 +12,8 @@ export default function AllZayavki() {
     const [zayavki, setZayavki] = useState([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [isLoading, setIsLoading] = useState(true);
+    const [isTableLoading, setIsTableLoading] = useState(false);
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
     const [error, setError] = useState("");
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [detailsZayavka, setDetailsZayavka] = useState(null);
@@ -64,6 +66,9 @@ export default function AllZayavki() {
             try {
                 if (silent) {
                     setIsRefreshing(true);
+                } else if (hasLoadedOnce) {
+                    setIsTableLoading(true);
+                    setError("");
                 } else {
                     setIsLoading(true);
                     setError("");
@@ -118,6 +123,7 @@ export default function AllZayavki() {
                         : 1,
                 );
                 setLastUpdated(new Date().toLocaleString("ru-RU"));
+                setHasLoadedOnce(true);
             } catch (err) {
                 if (!silent) {
                     setError(err.message || "Ошибка загрузки заявок");
@@ -127,12 +133,14 @@ export default function AllZayavki() {
             } finally {
                 if (silent) {
                     setIsRefreshing(false);
+                } else if (hasLoadedOnce) {
+                    setIsTableLoading(false);
                 } else {
                     setIsLoading(false);
                 }
             }
         },
-        [apiUrl, currentPage, PAGE_SIZE, searchText, statusFilter],
+        [apiUrl, currentPage, hasLoadedOnce, PAGE_SIZE, searchText, statusFilter],
     );
 
     useEffect(() => {
@@ -607,11 +615,16 @@ ${photoBlock}
         }
     }
 
-    useEffect(() => {
+    function handleStatusFilterChange(e) {
+        setStatusFilter(e.target.value);
         setCurrentPage(1);
-    }, [statusFilter, searchText]);
+    }
 
-    if (isLoading) {
+    function handleSearchTextChange(e) {
+        setSearchText(e.target.value);
+        setCurrentPage(1);
+    }
+    if (isLoading && !hasLoadedOnce) {
         return (
             <section className="container">
                 <p>Загрузка заявок...</p>
@@ -619,7 +632,7 @@ ${photoBlock}
         );
     }
 
-    if (error) {
+    if (error && !hasLoadedOnce) {
         return (
             <section className="container">
                 <p className="has-text-danger">{error}</p>
@@ -650,9 +663,7 @@ ${photoBlock}
                         <div className="select">
                             <select
                                 value={statusFilter}
-                                onChange={(e) =>
-                                    setStatusFilter(e.target.value)
-                                }
+                                onChange={handleStatusFilterChange}
                             >
                                 <option value="all">Все</option>
                                 <option value="resolved">Решенные</option>
@@ -663,7 +674,7 @@ ${photoBlock}
                             className="input zayavki-search"
                             type="text"
                             value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
+                            onChange={handleSearchTextChange}
                             placeholder="Поиск: КСА, серийный номер, контакт..."
                         />
                         <button
@@ -692,6 +703,11 @@ ${photoBlock}
                         Показано: {zayavki.length} из {totalItems}
                         {lastUpdated ? ` • обновлено: ${lastUpdated}` : ""}
                     </p>
+                    {isTableLoading ? (
+                        <p className="help mt-1">Обновление таблицы...</p>
+                    ) : error && hasLoadedOnce ? (
+                        <p className="help is-danger mt-1">{error}</p>
+                    ) : null}
                 </div>
             </div>
 
@@ -703,7 +719,7 @@ ${photoBlock}
                 </p>
             ) : (
                 <>
-                    <div className="table-container zayavki-table-container zayavki-desktop-view">
+                    <div className="table-container zayavki-table-container zayavki-desktop-view" aria-busy={isTableLoading}>
                         <table className="table is-fullwidth is-striped is-hoverable">
                             <thead>
                                 <tr>
