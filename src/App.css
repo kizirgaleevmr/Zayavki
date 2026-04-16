@@ -1693,8 +1693,8 @@ body.z-column-resizing * {
 
     .all-zayavki-page .zayavki-table-container {
         flex: 1 1 auto;
-        min-height: calc(100vh - 360px);
-        max-height: calc(100vh - 360px);
+        /* min-height: calc(100vh - 360px);
+        max-height: calc(100vh - 360px); */
         overflow: auto;
     }
 
