@@ -239,6 +239,19 @@ export default function AllZayavki() {
         return item?.created_by || item?.createdBy || item?.author || "-";
     }
 
+    function hasDevicePhoto(item) {
+        const fileName = String(item?.device_photo?.file_name || "")
+            .trim()
+            .toLowerCase();
+
+        return Boolean(
+            item?.device_photo?.data_base64 ||
+                (fileName &&
+                    fileName !== "нет фото" &&
+                    fileName !== "нету фото"),
+        );
+    }
+
     function getCardStyle(item) {
         const decision = (item.decision || "").trim();
         const isResolved = decision && decision !== "-";
@@ -845,7 +858,7 @@ ${photoBlock}
                     createdAt: item.createdAt
                         ? new Date(item.createdAt).toLocaleString("ru-RU")
                         : "-",
-                    photo: item.device_photo?.data_base64 ? "" : "-",
+                    photo: hasDevicePhoto(item) ? "Есть" : "-",
                     ksa: item.ksa_number || item.ksa_name || item.ksa_id || "-",
                     ksaAddress: item.ksa_address || "-",
                     deviceType:
@@ -1043,29 +1056,7 @@ ${photoBlock}
                                                   ).toLocaleString("ru-RU")
                                                 : "-"}
                                         </td>
-                                        <td>
-                                            {item.device_photo?.data_base64 ? (
-                                                <img
-                                                    src={
-                                                        item.device_photo
-                                                            .data_base64
-                                                    }
-                                                    alt="Фото устройства"
-                                                    style={{
-                                                        width: "64px",
-                                                        height: "64px",
-                                                        objectFit: "cover",
-                                                        borderRadius: "6px",
-                                                    }}
-                                                />
-                                            ) : item.device_photo?.file_name &&
-                                              item.device_photo.file_name !==
-                                                  "нет фото" ? (
-                                                "Есть"
-                                            ) : (
-                                                "-"
-                                            )}
-                                        </td>
+                                        <td>{hasDevicePhoto(item) ? "Есть" : "-"}</td>
                                         <td>
                                             <div className="z-table-ellipsis">
                                                 {item.ksa_number ||
@@ -1280,23 +1271,9 @@ ${photoBlock}
                                 </div>
 
                                 <div className="zayavka-card-content">
-                                    {item.device_photo?.data_base64 ? (
-                                        <img
-                                            src={item.device_photo.data_base64}
-                                            alt="Фото устройства"
-                                            className="zayavka-card-image"
-                                        />
-                                    ) : item.device_photo?.file_name &&
-                                      item.device_photo.file_name !==
-                                          "нету фото" ? (
-                                        <div className="zayavka-card-image-placeholder">
-                                            Есть фото
-                                        </div>
-                                    ) : (
-                                        <div className="zayavka-card-image-placeholder">
-                                            Нет фото
-                                        </div>
-                                    )}
+                                    <div className="zayavka-card-image-placeholder">
+                                        {hasDevicePhoto(item) ? "Есть" : "-"}
+                                    </div>
 
                                     <div className="zayavka-card-fields">
                                         <p>
@@ -1963,6 +1940,10 @@ ${photoBlock}
         </section>
     );
 }
+
+
+
+
 
 
 
