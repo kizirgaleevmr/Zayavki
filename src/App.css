@@ -725,15 +725,15 @@ main.mt-4 {
 
 .all-zayavki-page .table tbody td:first-child {
     border-left: 1px solid rgba(24, 54, 64, 0.12);
-    border-top-left-radius: 18px;
-    border-bottom-left-radius: 18px;
-    font-weight: 700;
+    /* border-top-left-radius: 18px;
+    border-bottom-left-radius: 18px; */
+    font-weight: 400;
 }
 
 .all-zayavki-page .table tbody td:last-child {
-    border-right: 1px solid rgba(24, 54, 64, 0.12);
+    /* border-right: 1px solid rgba(24, 54, 64, 0.12);
     border-top-right-radius: 18px;
-    border-bottom-right-radius: 18px;
+    border-bottom-right-radius: 18px; */
 }
 
 .all-zayavki-page .table tbody tr {
@@ -895,8 +895,8 @@ main.mt-4 {
 .all-zayavki-page .z-action-btn {
     width: 18px;
     min-width: 18px;
-    height: 18px;
-    padding: 0;
+    height: 30px;
+    padding: 14px;
     border-radius: 10px !important;
     box-shadow: none !important;
 }
