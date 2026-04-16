@@ -46,6 +46,8 @@ export default function AllZayavki() {
     const [editSelectedDeviceNameId, setEditSelectedDeviceNameId] =
         useState("");
     const [deletingId, setDeletingId] = useState("");
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteCandidate, setDeleteCandidate] = useState(null);
     const [isExporting, setIsExporting] = useState(false);
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -690,26 +692,35 @@ ${photoBlock}
         }
     }
 
-    async function deleteZayavka(item, evt) {
+    function openDeleteModal(item, evt) {
         evt.stopPropagation();
         if (!item?._id) return;
 
-        const confirmed = window.confirm(
-            `Удалить заявку с серийным номером "${item.device_serial || "-"}"?`,
-        );
-        if (!confirmed) return;
+        setDeleteCandidate(item);
+        setIsDeleteModalOpen(true);
+    }
+
+    function closeDeleteModal() {
+        if (deletingId) return;
+        setIsDeleteModalOpen(false);
+        setDeleteCandidate(null);
+    }
+
+    async function confirmDeleteZayavka() {
+        if (!deleteCandidate?._id) return;
 
         try {
-            setDeletingId(item._id);
+            setError("");
+            setDeletingId(deleteCandidate._id);
             let response = await fetchWithAuth(
-                `${apiUrl}/zayavki/${item._id}`,
+                `${apiUrl}/zayavki/${deleteCandidate._id}`,
                 {
                     method: "DELETE",
                 },
             );
             if (response.status === 404) {
                 response = await fetchWithAuth(
-                    `${apiUrl}/zayavki/${item._id}/delete`,
+                    `${apiUrl}/zayavki/${deleteCandidate._id}/delete`,
                     {
                         method: "POST",
                     },
@@ -721,16 +732,20 @@ ${photoBlock}
                 throw new Error(result.message || "Не удалось удалить заявку");
             }
 
-            setZayavki((prev) => prev.filter((z) => z._id !== item._id));
-            if (selectedZayavka?._id === item._id) {
+            setZayavki((prev) =>
+                prev.filter((z) => z._id !== deleteCandidate._id),
+            );
+            if (selectedZayavka?._id === deleteCandidate._id) {
                 closeDecisionModal();
             }
-            if (detailsZayavka?._id === item._id) {
+            if (detailsZayavka?._id === deleteCandidate._id) {
                 closeDetailsModal();
             }
-            if (editingZayavka?._id === item._id) {
+            if (editingZayavka?._id === deleteCandidate._id) {
                 closeEditModal();
             }
+            setIsDeleteModalOpen(false);
+            setDeleteCandidate(null);
         } catch (err) {
             setError(err.message || "Ошибка удаления заявки");
         } finally {
@@ -1168,7 +1183,7 @@ ${photoBlock}
                                                             : ""
                                                     }`}
                                                     onClick={(evt) =>
-                                                        deleteZayavka(item, evt)
+                                                        openDeleteModal(item, evt)
                                                     }
                                                     disabled={
                                                         deletingId === item._id
@@ -1361,7 +1376,7 @@ ${photoBlock}
                                                 : ""
                                         }`}
                                         onClick={(evt) =>
-                                            deleteZayavka(item, evt)
+                                            openDeleteModal(item, evt)
                                         }
                                         disabled={deletingId === item._id}
                                     >
@@ -1531,6 +1546,55 @@ ${photoBlock}
                             type="button"
                             onClick={closeDecisionModal}
                             disabled={isSavingDecision}
+                        >
+                            Отмена
+                        </button>
+                    </footer>
+                </div>
+            </div>
+
+            <div className={`modal ${isDeleteModalOpen ? "is-active" : ""}`}>
+                <div className="modal-background" onClick={closeDeleteModal} />
+                <div className="modal-card">
+                    <header className="modal-card-head">
+                        <p className="modal-card-title">Подтверждение удаления</p>
+                        <button
+                            className="delete"
+                            aria-label="close"
+                            type="button"
+                            onClick={closeDeleteModal}
+                            disabled={Boolean(deletingId)}
+                        />
+                    </header>
+                    <section className="modal-card-body">
+                        <p className="mb-3">
+                            Вы действительно хотите удалить заявку?
+                        </p>
+                        <p className="mb-2">
+                            <strong>Серийный номер:</strong>{" "}
+                            {deleteCandidate?.device_serial || "-"}
+                        </p>
+                        <p>
+                            <strong>Наименование:</strong>{" "}
+                            {deleteCandidate?.device_name || "-"}
+                        </p>
+                    </section>
+                    <footer className="modal-card-foot">
+                        <button
+                            className={`button is-danger ${
+                                deletingId ? "is-loading" : ""
+                            }`}
+                            type="button"
+                            onClick={confirmDeleteZayavka}
+                            disabled={!deleteCandidate?._id || Boolean(deletingId)}
+                        >
+                            Подтвердить удаление
+                        </button>
+                        <button
+                            className="button"
+                            type="button"
+                            onClick={closeDeleteModal}
+                            disabled={Boolean(deletingId)}
                         >
                             Отмена
                         </button>
@@ -1899,3 +1963,6 @@ ${photoBlock}
         </section>
     );
 }
+
+
+
