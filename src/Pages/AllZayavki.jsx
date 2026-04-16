@@ -1836,6 +1836,25 @@ ${photoBlock}
                                 />
                             </div>
                         </div>
+                        <div className="field">
+                            <label className="label">Срочность</label>
+                            <div className="control">
+                                <div className="select is-fullwidth">
+                                    <select
+                                        value={editForm.urgency}
+                                        onChange={(e) =>
+                                            setEditForm((prev) => ({
+                                                ...prev,
+                                                urgency: e.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="not_urgent">Не срочно</option>
+                                        <option value="urgent">Срочно</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                         {/* Поле "Адрес КСА" удалено по запросу */}
                         {editError ? (
                             <p className="help is-danger">{editError}</p>
@@ -1866,6 +1885,7 @@ ${photoBlock}
         </section>
     );
 }
+
 
 
 
