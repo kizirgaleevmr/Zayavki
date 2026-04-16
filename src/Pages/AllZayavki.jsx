@@ -2,6 +2,26 @@
 import ExcelJS from "exceljs";
 import { fetchWithAuth, AUTH_USER_KEY } from "../utils/auth";
 
+const ZAYAVKI_TABLE_COLUMNS = [
+    { key: "requestId", label: "№ заявки", width: 110, minWidth: 90 },
+    { key: "createdAt", label: "Дата", width: 190, minWidth: 150 },
+    { key: "photo", label: "Фото", width: 90, minWidth: 80 },
+    { key: "ksa", label: "КСА", width: 180, minWidth: 140 },
+    { key: "deviceType", label: "Тип устройства", width: 180, minWidth: 150 },
+    { key: "deviceName", label: "Наименование", width: 220, minWidth: 180 },
+    { key: "deviceSerial", label: "Серийный номер", width: 180, minWidth: 150 },
+    { key: "urgency", label: "Срочность", width: 130, minWidth: 110 },
+    { key: "deviceIssue", label: "Неисправность", width: 320, minWidth: 220 },
+    { key: "actions", label: "Действия", width: 170, minWidth: 150 },
+];
+
+const INITIAL_ZAYAVKI_COLUMN_WIDTHS = ZAYAVKI_TABLE_COLUMNS.reduce(
+    (acc, column) => ({
+        ...acc,
+        [column.key]: column.width,
+    }),
+    {},
+);
 export default function AllZayavki() {
     // Получение пользователя из localStorage
     let user = null;
@@ -55,7 +75,9 @@ export default function AllZayavki() {
     const [totalPages, setTotalPages] = useState(1);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState("");
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
+    const [columnWidths, setColumnWidths] = useState(
+        INITIAL_ZAYAVKI_COLUMN_WIDTHS,
+    );    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
     const PAGE_SIZE = 10;
 
     const deviceTypeLabels = {
@@ -268,6 +290,42 @@ export default function AllZayavki() {
             : { backgroundColor: "#fdeeee" };
     }
 
+    function handleColumnResizeStart(columnKey, evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+
+        const column = ZAYAVKI_TABLE_COLUMNS.find(
+            (item) => item.key === columnKey,
+        );
+        if (!column) return;
+
+        const startX = evt.clientX;
+        const startWidth = columnWidths[columnKey] || column.width;
+        document.body.classList.add("z-column-resizing");
+
+        function handleMouseMove(moveEvt) {
+            const delta = moveEvt.clientX - startX;
+            const nextWidth = Math.max(
+                column.minWidth || 80,
+                startWidth + delta,
+            );
+
+            setColumnWidths((prev) => ({
+                ...prev,
+                [columnKey]: nextWidth,
+            }));
+        }
+
+        function handleMouseUp() {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+            document.body.classList.remove("z-column-resizing");
+        }
+
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp);
+    }
+
     function openDecisionModal(item) {
         setSelectedZayavka(item);
         setDecisionText(item.decision || "");
@@ -297,7 +355,7 @@ export default function AllZayavki() {
 
         try {
             const response = await fetchWithAuth(
-                `${apiUrl}/zayavki/${item._id}`,
+                `${apiUrl}/zayavki/${item._id}?includePhoto=1`,
                 {
                     method: "GET",
                 },
@@ -561,8 +619,9 @@ export default function AllZayavki() {
             deviceTypeLabels[detailsZayavka.device_type] ||
             detailsZayavka.device_type ||
             "-";
-        const photoBlock = detailsZayavka.device_photo?.data_base64
-            ? `<img src="${detailsZayavka.device_photo.data_base64}" alt="Фото устройства" style="width:220px;max-width:100%;border-radius:8px;" />`
+        const photoSrc = getDevicePhotoDataUrl(detailsZayavka);
+        const photoBlock = photoSrc
+            ? `<img src="${photoSrc}" alt="Фото устройства" style="width:220px;max-width:100%;border-radius:8px;" />`
             : "<p>-</p>";
 
         const html = `<!doctype html>
@@ -922,6 +981,11 @@ ${photoBlock}
         setSearchText(e.target.value);
         setCurrentPage(1);
     }
+    const desktopTableMinWidth = ZAYAVKI_TABLE_COLUMNS.reduce(
+        (sum, column) => sum + (columnWidths[column.key] || column.width),
+        0,
+    );
+
     if (isLoading && !hasLoadedOnce) {
         return (
             <section className="container">
@@ -1021,19 +1085,52 @@ ${photoBlock}
                         className="table-container zayavki-table-container zayavki-desktop-view"
                         aria-busy={isTableLoading}
                     >
-                        <table className="table is-fullwidth is-striped is-hoverable">
+                        <table
+                            className="table is-fullwidth is-striped is-hoverable zayavki-resizable-table"
+                            style={{ minWidth: `${desktopTableMinWidth}px` }}
+                        >
+                            <colgroup>
+                                {ZAYAVKI_TABLE_COLUMNS.map((column) => (
+                                    <col
+                                        key={column.key}
+                                        style={{
+                                            width: `${
+                                                columnWidths[column.key] ||
+                                                column.width
+                                            }px`,
+                                        }}
+                                    />
+                                ))}
+                            </colgroup>
                             <thead>
                                 <tr>
-                                    <th>№ заявки</th>
-                                    <th>Дата</th>
-                                    <th>Фото</th>
-                                    <th>КСА</th>
-                                    <th>Тип устройства</th>
-                                    <th>Наименование</th>
-                                    <th>Серийный номер</th>
-                                    <th>Срочность</th>
-                                    <th>Неисправность</th>
-                                    <th>Действия</th>
+                                    {ZAYAVKI_TABLE_COLUMNS.map((column) => (
+                                        <th
+                                            key={column.key}
+                                            style={{
+                                                width: `${
+                                                    columnWidths[column.key] ||
+                                                    column.width
+                                                }px`,
+                                                minWidth: `${column.minWidth}px`,
+                                            }}
+                                        >
+                                            <div className="z-table-head-cell">
+                                                <span>{column.label}</span>
+                                                <button
+                                                    type="button"
+                                                    className="z-table-resize-handle"
+                                                    aria-label={`Изменить ширину столбца ${column.label}`}
+                                                    onMouseDown={(evt) =>
+                                                        handleColumnResizeStart(
+                                                            column.key,
+                                                            evt,
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody>
@@ -1668,17 +1765,14 @@ ${photoBlock}
                                 <p>
                                     <strong>Фото:</strong>
                                 </p>
-                                {detailsZayavka.device_photo?.data_base64 ? (
+                                                                {getDevicePhotoDataUrl(detailsZayavka) ? (
                                     <img
-                                        src={
-                                            detailsZayavka.device_photo
-                                                .data_base64
-                                        }
+                                        src={getDevicePhotoDataUrl(detailsZayavka)}
                                         alt="Фото устройства"
                                         style={{
-                                            width: "220px",
+                                            width: "100%",
                                             maxWidth: "100%",
-                                            borderRadius: "8px",
+                                            borderRadius: "18px",
                                         }}
                                     />
                                 ) : (
@@ -1940,6 +2034,8 @@ ${photoBlock}
         </section>
     );
 }
+
+
 
 
 

@@ -1589,3 +1589,113 @@ main.mt-4 {
         grid-column: 1 / -1;
     }
 }
+
+/* Desktop table + resize controls */
+.all-zayavki-page .zayavki-resizable-table {
+    table-layout: fixed;
+}
+
+.all-zayavki-page .zayavki-resizable-table th {
+    position: relative;
+    vertical-align: middle;
+    user-select: none;
+}
+
+.all-zayavki-page .zayavki-resizable-table th,
+.all-zayavki-page .zayavki-resizable-table td {
+    overflow: hidden;
+}
+
+.z-table-head-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 28px;
+}
+
+.z-table-head-cell > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.z-table-resize-handle {
+    position: relative;
+    flex: 0 0 12px;
+    width: 12px;
+    align-self: stretch;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: col-resize;
+}
+
+.z-table-resize-handle::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: rgba(21, 79, 92, 0.18);
+    transition: background-color 0.2s ease;
+}
+
+.z-table-resize-handle:hover::before,
+.z-table-resize-handle:focus-visible::before {
+    background: rgba(21, 79, 92, 0.42);
+}
+
+body.z-column-resizing,
+body.z-column-resizing * {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+@media (min-width: 1024px) {
+    .all-zayavki-page {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 92px);
+    }
+
+    .all-zayavki-page > .title,
+    .all-zayavki-page > .mb-4,
+    .all-zayavki-page > .field.mb-4,
+    .all-zayavki-page > .pagination {
+        flex-shrink: 0;
+    }
+
+    .all-zayavki-page .zayavki-table-container {
+        flex: 1 1 auto;
+        min-height: calc(100vh - 360px);
+        max-height: calc(100vh - 360px);
+        overflow: auto;
+    }
+
+    .all-zayavki-page .zayavki-desktop-view .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: rgba(245, 249, 248, 0.98);
+        backdrop-filter: blur(8px);
+    }
+
+    .modal-card {
+        resize: both;
+        overflow: auto;
+        min-width: 480px;
+        min-height: 320px;
+        max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+    }
+}
+
+@media (max-width: 1023px) {
+    .modal-card {
+        resize: none;
+    }
+}
