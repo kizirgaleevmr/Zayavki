@@ -229,6 +229,7 @@ main.mt-4 {
 }
 
 .zayavki-page {
+    min-height: calc(100vh - 150px);
     padding: 18px 20px 22px;
 }
 
@@ -1292,5 +1293,35 @@ main.mt-4 {
 
 .all-zayavki-page .table tbody tr.z-row-urgent-resolved td:first-child {
     box-shadow: inset 4px 0 0 #d9783d;
+}
+
+
+
+
+@media (min-width: 1024px) {
+    .container {
+        max-width: 1920px !important;
+        width: min(1920px, calc(100% - 32px));
+        margin-inline: auto;
+    }
+}
+
+@media (max-width: 1023px) {
+    .all-zayavki-page .zayavki-toolbar {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+
+    .all-zayavki-page .zayavki-toolbar > * {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .all-zayavki-page .zayavki-search {
+        min-width: 100%;
+        flex-basis: auto;
+    }
 }
 
