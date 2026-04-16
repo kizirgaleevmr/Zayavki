@@ -22,6 +22,57 @@ const INITIAL_ZAYAVKI_COLUMN_WIDTHS = ZAYAVKI_TABLE_COLUMNS.reduce(
     }),
     {},
 );
+
+const COLUMN_WIDTHS_STORAGE_KEY = "zayavki.table.column-widths.v1";
+const MODAL_SIZES_STORAGE_KEY = "zayavki.modal-sizes.v1";
+
+function readStorageJson(key, fallback) {
+    if (typeof window === "undefined") return fallback;
+
+    try {
+        const rawValue = window.localStorage.getItem(key);
+        return rawValue ? JSON.parse(rawValue) : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+function getInitialColumnWidths() {
+    const storedWidths = readStorageJson(COLUMN_WIDTHS_STORAGE_KEY, null);
+    if (!storedWidths || typeof storedWidths !== "object") {
+        return INITIAL_ZAYAVKI_COLUMN_WIDTHS;
+    }
+
+    return ZAYAVKI_TABLE_COLUMNS.reduce(
+        (acc, column) => ({
+            ...acc,
+            [column.key]: Math.max(
+                column.minWidth || 80,
+                Number(storedWidths[column.key]) || column.width,
+            ),
+        }),
+        {},
+    );
+}
+
+function getInitialModalSizes() {
+    const storedSizes = readStorageJson(MODAL_SIZES_STORAGE_KEY, null);
+    if (!storedSizes || typeof storedSizes !== "object") {
+        return {};
+    }
+
+    return Object.entries(storedSizes).reduce((acc, [key, value]) => {
+        const width = Math.round(Number(value?.width));
+        const height = Math.round(Number(value?.height));
+
+        if (width >= 360 && height >= 240) {
+            acc[key] = { width, height };
+        }
+
+        return acc;
+    }, {});
+}
+
 export default function AllZayavki() {
     // Получение пользователя из localStorage
     let user = null;
@@ -75,9 +126,9 @@ export default function AllZayavki() {
     const [totalPages, setTotalPages] = useState(1);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState("");
-    const [columnWidths, setColumnWidths] = useState(
-        INITIAL_ZAYAVKI_COLUMN_WIDTHS,
-    );    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
+    const [columnWidths, setColumnWidths] = useState(getInitialColumnWidths);
+    const [modalSizes, setModalSizes] = useState(getInitialModalSizes);
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
     const PAGE_SIZE = 10;
 
     const deviceTypeLabels = {
@@ -274,6 +325,20 @@ export default function AllZayavki() {
         );
     }
 
+    function getDevicePhotoDataUrl(item) {
+        return String(item?.device_photo?.data_base64 || "").trim();
+    }
+
+    function getModalSizeStyle(modalKey) {
+        const size = modalSizes[modalKey];
+        if (!size) return undefined;
+
+        return {
+            width: size.width ? `${size.width}px` : undefined,
+            height: size.height ? `${size.height}px` : undefined,
+        };
+    }
+
     function getCardStyle(item) {
         const decision = (item.decision || "").trim();
         const isResolved = decision && decision !== "-";
@@ -289,6 +354,77 @@ export default function AllZayavki() {
             ? { backgroundColor: "#e8f8ee" }
             : { backgroundColor: "#fdeeee" };
     }
+
+    useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+
+        const timeoutId = window.setTimeout(() => {
+            window.localStorage.setItem(
+                COLUMN_WIDTHS_STORAGE_KEY,
+                JSON.stringify(columnWidths),
+            );
+        }, 120);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [columnWidths]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+
+        const timeoutId = window.setTimeout(() => {
+            window.localStorage.setItem(
+                MODAL_SIZES_STORAGE_KEY,
+                JSON.stringify(modalSizes),
+            );
+        }, 120);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [modalSizes]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || typeof ResizeObserver === "undefined") {
+            return undefined;
+        }
+
+        const modalElements = Array.from(
+            document.querySelectorAll(".modal-card[data-resizable-modal-key]"),
+        );
+        if (!modalElements.length) {
+            return undefined;
+        }
+
+        const observer = new ResizeObserver((entries) => {
+            setModalSizes((prev) => {
+                let changed = false;
+                const next = { ...prev };
+
+                entries.forEach((entry) => {
+                    const modalKey = entry.target.dataset.resizableModalKey;
+                    if (!modalKey) return;
+
+                    const width = Math.round(entry.contentRect.width);
+                    const height = Math.round(entry.contentRect.height);
+                    if (width < 360 || height < 240) return;
+
+                    const prevSize = prev[modalKey] || {};
+                    if (
+                        prevSize.width === width &&
+                        prevSize.height === height
+                    ) {
+                        return;
+                    }
+
+                    next[modalKey] = { width, height };
+                    changed = true;
+                });
+
+                return changed ? next : prev;
+            });
+        });
+
+        modalElements.forEach((element) => observer.observe(element));
+        return () => observer.disconnect();
+    }, []);
 
     function handleColumnResizeStart(columnKey, evt) {
         evt.preventDefault();
@@ -1508,7 +1644,7 @@ ${photoBlock}
                     className="modal-background"
                     onClick={closeDecisionModal}
                 />
-                <div className="modal-card z-decision-modal">
+                <div className="modal-card z-decision-modal" data-resizable-modal-key="decision" style={getModalSizeStyle("decision")}>
                     <header className="modal-card-head">
                         <p className="modal-card-title">Решение по заявке</p>
                         <button
@@ -1629,7 +1765,7 @@ ${photoBlock}
 
             <div className={`modal ${isDeleteModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeDeleteModal} />
-                <div className="modal-card z-delete-modal">
+                <div className="modal-card z-delete-modal" data-resizable-modal-key="delete" style={getModalSizeStyle("delete")}>
                     <header className="modal-card-head">
                         <p className="modal-card-title">Подтверждение удаления</p>
                         <button
@@ -1678,7 +1814,7 @@ ${photoBlock}
 
             <div className={`modal ${isDetailsModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeDetailsModal} />
-                <div className="modal-card z-details-modal">
+                <div className="modal-card z-details-modal" data-resizable-modal-key="details" style={getModalSizeStyle("details")}>
                     <header className="modal-card-head">
                         <p className="modal-card-title">Информация по заявке</p>
                         <button
@@ -1804,7 +1940,7 @@ ${photoBlock}
 
             <div className={`modal ${isEditModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeEditModal} />
-                <div className="modal-card z-edit-modal">
+                <div className="modal-card z-edit-modal" data-resizable-modal-key="edit" style={getModalSizeStyle("edit")}>
                     <header className="modal-card-head">
                         <p className="modal-card-title">
                             Редактирование заявки
@@ -2034,6 +2170,9 @@ ${photoBlock}
         </section>
     );
 }
+
+
+
 
 
 
