@@ -64,17 +64,17 @@ export default function FormZayavki() {
     }
 
     function checkDeviceName(evt) {
-        const nextNameId = evt.target.value;
+        const nextNameValue = evt.target.value;
         const selectedItem = deviceNames.find(
             (item) =>
-                String(item?.id_naimenovanie || "").trim() ===
-                String(nextNameId || "").trim(),
+                String(item?.ts_naimenovanie || "").trim().toLowerCase() ===
+                String(nextNameValue || "").trim().toLowerCase(),
         );
 
-        setSelectedDeviceNameId(nextNameId);
-        setSelectedDeviceName(
-            String(selectedItem?.ts_naimenovanie || "").trim(),
+        setSelectedDeviceNameId(
+            String(selectedItem?.id_naimenovanie || "").trim(),
         );
+        setSelectedDeviceName(nextNameValue);
         setSelectedDeviceSerial("");
     }
 
@@ -456,39 +456,40 @@ export default function FormZayavki() {
                                 Наименование устройства
                             </label>
                             <div className="control">
-                                <div className="select is-fullwidth">
-                                    <select
-                                        name="device_name"
-                                        required
-                                        value={selectedDeviceNameId}
-                                        onChange={checkDeviceName}
-                                        disabled={!selectedDeviceTypeId}
-                                    >
-                                        <option value="">
-                                            {selectedDeviceTypeId
-                                                ? "Выбрать наименование"
-                                                : "Сначала выберите тип устройства"}
-                                        </option>
-                                        {deviceNames.map((item) => {
-                                            const nameId = String(
-                                                item?.id_naimenovanie || "",
-                                            ).trim();
-                                            const nameValue = String(
-                                                item?.ts_naimenovanie || "",
-                                            ).trim();
-                                            if (!nameId || !nameValue) return null;
+                                <input
+                                    className="input"
+                                    type="text"
+                                    name="device_name"
+                                    list="device-name-suggestions"
+                                    required
+                                    value={selectedDeviceName}
+                                    onChange={checkDeviceName}
+                                    disabled={!selectedDeviceTypeId}
+                                    placeholder={
+                                        selectedDeviceTypeId
+                                            ? "Введите или выберите наименование"
+                                            : "Сначала выберите тип устройства"
+                                    }
+                                    autoComplete="off"
+                                />
+                                <datalist id="device-name-suggestions">
+                                    {deviceNames.map((item) => {
+                                        const nameValue = String(
+                                            item?.ts_naimenovanie || "",
+                                        ).trim();
+                                        if (!nameValue) return null;
 
-                                            return (
-                                                <option
-                                                    key={nameId}
-                                                    value={nameId}
-                                                >
-                                                    {nameValue}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                </div>
+                                        return (
+                                            <option
+                                                key={
+                                                    item.id_naimenovanie ||
+                                                    nameValue
+                                                }
+                                                value={nameValue}
+                                            />
+                                        );
+                                    })}
+                                </datalist>
                             </div>
                         </div>
                         <div className="field">
@@ -496,36 +497,37 @@ export default function FormZayavki() {
                                 Сериийный номер устройства
                             </label>
                             <div className="control">
-                                <div className="select is-fullwidth">
-                                    <select
-                                        name="device_serial"
-                                        required
-                                        value={selectedDeviceSerial}
-                                        onChange={checkDeviceSerial}
-                                        disabled={!selectedDeviceNameId}
-                                    >
-                                        <option value="">
-                                            {selectedDeviceNameId
-                                                ? "Выбрать серийный номер"
-                                                : "Сначала выберите наименование"}
-                                        </option>
-                                        {deviceSerials.map((item) => {
-                                            const serialValue = String(
-                                                item?.serial_number || "",
-                                            ).trim();
-                                            if (!serialValue) return null;
+                                <input
+                                    className="input"
+                                    type="text"
+                                    name="device_serial"
+                                    list="device-serial-suggestions"
+                                    required
+                                    value={selectedDeviceSerial}
+                                    onChange={checkDeviceSerial}
+                                    disabled={!selectedDeviceNameId}
+                                    placeholder={
+                                        selectedDeviceNameId
+                                            ? "Введите или выберите серийный номер"
+                                            : "Сначала выберите наименование"
+                                    }
+                                    autoComplete="off"
+                                />
+                                <datalist id="device-serial-suggestions">
+                                    {deviceSerials.map((item) => {
+                                        const serialValue = String(
+                                            item?.serial_number || "",
+                                        ).trim();
+                                        if (!serialValue) return null;
 
-                                            return (
-                                                <option
-                                                    key={item.id_ts || serialValue}
-                                                    value={serialValue}
-                                                >
-                                                    {serialValue}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                </div>
+                                        return (
+                                            <option
+                                                key={item.id_ts || serialValue}
+                                                value={serialValue}
+                                            />
+                                        );
+                                    })}
+                                </datalist>
                             </div>
                         </div>
                     </div>
@@ -658,6 +660,9 @@ export default function FormZayavki() {
 
 //TODO!- [ ]  добавить при добавление решения в заявки информацию о том кто добавил решение (фио и должность) и дату добавления решения
 //TODO! -  добавить при решение заявки информацию для отгрузки оборудования и информацию кто отгрузил оборудования куда отгрузил и дату отгрузки
+
+
+
 
 
 
