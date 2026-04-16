@@ -38,6 +38,13 @@ export default function AllZayavki() {
         urgency: "not_urgent",
         ksa_address: "",
     });
+    const [editDeviceTypes, setEditDeviceTypes] = useState([]);
+    const [editDeviceNames, setEditDeviceNames] = useState([]);
+    const [editDeviceSerials, setEditDeviceSerials] = useState([]);
+    const [editSelectedDeviceTypeId, setEditSelectedDeviceTypeId] =
+        useState("");
+    const [editSelectedDeviceNameId, setEditSelectedDeviceNameId] =
+        useState("");
     const [deletingId, setDeletingId] = useState("");
     const [isExporting, setIsExporting] = useState(false);
     const [searchText, setSearchText] = useState("");
@@ -63,6 +70,43 @@ export default function AllZayavki() {
 
     function getDeviceTypeText(value) {
         return deviceTypeLabels[value] || value || "-";
+    }
+
+    function normalizeText(value) {
+        return String(value || "").trim().toLowerCase();
+    }
+
+    function getEditDeviceTypeIdByValue(value) {
+        const rawValue = String(value || "").trim();
+        if (!rawValue) return "";
+
+        const byId = editDeviceTypes.find(
+            (item) => String(item?.id_type || "").trim() === rawValue,
+        );
+        if (byId) return String(byId.id_type || "").trim();
+
+        const byText = editDeviceTypes.find(
+            (item) => normalizeText(item?.type) === normalizeText(rawValue),
+        );
+        return String(byText?.id_type || "").trim();
+    }
+
+    function getEditDeviceNameIdByValue(value) {
+        const rawValue = String(value || "").trim();
+        if (!rawValue) return "";
+
+        const byId = editDeviceNames.find(
+            (item) =>
+                String(item?.id_naimenovanie || "").trim() === rawValue,
+        );
+        if (byId) return String(byId.id_naimenovanie || "").trim();
+
+        const byText = editDeviceNames.find(
+            (item) =>
+                normalizeText(item?.ts_naimenovanie) ===
+                normalizeText(rawValue),
+        );
+        return String(byText?.id_naimenovanie || "").trim();
     }
 
     const getAllZayavki = useCallback(
@@ -275,6 +319,10 @@ export default function AllZayavki() {
             urgency: item.urgency || "not_urgent",
             ksa_address: item.ksa_address || "",
         });
+        setEditSelectedDeviceTypeId("");
+        setEditSelectedDeviceNameId("");
+        setEditDeviceNames([]);
+        setEditDeviceSerials([]);
         setEditError("");
         setIsEditModalOpen(true);
     }
@@ -283,6 +331,10 @@ export default function AllZayavki() {
         setIsEditModalOpen(false);
         setEditingZayavka(null);
         setEditError("");
+        setEditSelectedDeviceTypeId("");
+        setEditSelectedDeviceNameId("");
+        setEditDeviceNames([]);
+        setEditDeviceSerials([]);
         setEditForm({
             device_type: "",
             device_name: "",
@@ -1631,21 +1683,42 @@ ${photoBlock}
                             <div className="control">
                                 <div className="select is-fullwidth">
                                     <select
-                                        value={editForm.device_type}
-                                        onChange={(e) =>
-                                            setEditForm((prev) => ({
-                                                ...prev,
-                                                device_type: e.target.value,
-                                            }))
+                                        value={
+                                            editSelectedDeviceTypeId ||
+                                            (editForm.device_type
+                                                ? "__current__"
+                                                : "")
                                         }
+                                        onChange={handleEditDeviceTypeChange}
                                     >
-                                        <option value="terminal">
-                                            Терминал
+                                        <option value="">
+                                            Выбрать тип устройства
                                         </option>
-                                        <option value="printer">Принтер</option>
-                                        <option value="scanner">Сканер</option>
-                                        <option value="pc">ПК</option>
-                                        <option value="other">Другое</option>
+                                        {!editSelectedDeviceTypeId &&
+                                        editForm.device_type ? (
+                                            <option value="__current__">
+                                                {getDeviceTypeText(
+                                                    editForm.device_type,
+                                                )}
+                                            </option>
+                                        ) : null}
+                                        {editDeviceTypes.map((item) => {
+                                            const typeId = String(
+                                                item?.id_type || "",
+                                            ).trim();
+                                            const typeValue = String(
+                                                item?.type || "",
+                                            ).trim();
+                                            if (!typeId || !typeValue) {
+                                                return null;
+                                            }
+
+                                            return (
+                                                <option key={typeId} value={typeId}>
+                                                    {typeValue}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </div>
                             </div>
@@ -1658,14 +1731,41 @@ ${photoBlock}
                                 <input
                                     className="input"
                                     type="text"
+                                    list="edit-device-name-suggestions"
                                     value={editForm.device_name}
-                                    onChange={(e) =>
-                                        setEditForm((prev) => ({
-                                            ...prev,
-                                            device_name: e.target.value,
-                                        }))
+                                    onChange={handleEditDeviceNameChange}
+                                    disabled={
+                                        !editSelectedDeviceTypeId &&
+                                        !editForm.device_type
                                     }
+                                    placeholder={
+                                        editSelectedDeviceTypeId ||
+                                        editForm.device_type
+                                            ? "Введите или выберите наименование"
+                                            : "Сначала выберите тип устройства"
+                                    }
+                                    autoComplete="off"
                                 />
+                                <datalist id="edit-device-name-suggestions">
+                                    {editDeviceNames.map((item) => {
+                                        const nameValue = String(
+                                            item?.ts_naimenovanie || "",
+                                        ).trim();
+                                        if (!nameValue) {
+                                            return null;
+                                        }
+
+                                        return (
+                                            <option
+                                                key={
+                                                    item.id_naimenovanie ||
+                                                    nameValue
+                                                }
+                                                value={nameValue}
+                                            />
+                                        );
+                                    })}
+                                </datalist>
                             </div>
                         </div>
                         <div className="field">
@@ -1674,35 +1774,34 @@ ${photoBlock}
                                 <input
                                     className="input"
                                     type="text"
+                                    list="edit-device-serial-suggestions"
                                     value={editForm.device_serial}
-                                    onChange={(e) =>
-                                        setEditForm((prev) => ({
-                                            ...prev,
-                                            device_serial: e.target.value,
-                                        }))
+                                    onChange={handleEditDeviceSerialChange}
+                                    disabled={!editForm.device_name}
+                                    placeholder={
+                                        editForm.device_name
+                                            ? "Введите или выберите серийный номер"
+                                            : "Сначала выберите наименование"
                                     }
+                                    autoComplete="off"
                                 />
-                            </div>
-                        </div>
-                        <div className="field">
-                            <label className="label">Срочность</label>
-                            <div className="control">
-                                <div className="select is-fullwidth">
-                                    <select
-                                        value={editForm.urgency}
-                                        onChange={(e) =>
-                                            setEditForm((prev) => ({
-                                                ...prev,
-                                                urgency: e.target.value,
-                                            }))
+                                <datalist id="edit-device-serial-suggestions">
+                                    {editDeviceSerials.map((item) => {
+                                        const serialValue = String(
+                                            item?.serial_number || "",
+                                        ).trim();
+                                        if (!serialValue) {
+                                            return null;
                                         }
-                                    >
-                                        <option value="urgent">Срочно</option>
-                                        <option value="not_urgent">
-                                            Не срочно
-                                        </option>
-                                    </select>
-                                </div>
+
+                                        return (
+                                            <option
+                                                key={item.id_ts || serialValue}
+                                                value={serialValue}
+                                            />
+                                        );
+                                    })}
+                                </datalist>
                             </div>
                         </div>
                         <div className="field">
@@ -1767,4 +1866,9 @@ ${photoBlock}
         </section>
     );
 }
+
+
+
+
+
 
