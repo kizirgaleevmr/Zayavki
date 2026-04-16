@@ -618,7 +618,7 @@ export default function FormZayavki() {
                     className="modal-background"
                     onClick={() => setShowSuccessModal(false)}
                 />
-                <div className="modal-card">
+                <div className="modal-card z-success-modal">
                     <header className="modal-card-head">
                         <p className="modal-card-title">Заявка добавлена</p>
                         <button
@@ -660,6 +660,8 @@ export default function FormZayavki() {
 
 //TODO!- [ ]  добавить при добавление решения в заявки информацию о том кто добавил решение (фио и должность) и дату добавления решения
 //TODO! -  добавить при решение заявки информацию для отгрузки оборудования и информацию кто отгрузил оборудования куда отгрузил и дату отгрузки
+
+
 
 
 

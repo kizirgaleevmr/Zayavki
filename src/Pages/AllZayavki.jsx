@@ -1555,7 +1555,7 @@ ${photoBlock}
 
             <div className={`modal ${isDeleteModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeDeleteModal} />
-                <div className="modal-card">
+                <div className="modal-card z-delete-modal">
                     <header className="modal-card-head">
                         <p className="modal-card-title">Подтверждение удаления</p>
                         <button
@@ -1604,7 +1604,7 @@ ${photoBlock}
 
             <div className={`modal ${isDetailsModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeDetailsModal} />
-                <div className="modal-card">
+                <div className="modal-card z-details-modal">
                     <header className="modal-card-head">
                         <p className="modal-card-title">Информация по заявке</p>
                         <button
@@ -1963,6 +1963,8 @@ ${photoBlock}
         </section>
     );
 }
+
+
 
 
 
