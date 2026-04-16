@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import crypto from "crypto";
@@ -97,6 +97,40 @@ const ksaScheme = new Schema({
     work_phone: { type: String },
 });
 
+const deviceTypeScheme = new Schema(
+    {
+        id_type: { type: String },
+        type: { type: String },
+    },
+    { collection: "type_ustroistva" },
+);
+
+const deviceNameScheme = new Schema(
+    {
+        id_naimenovanie: { type: String },
+        type_id: { type: String },
+        ts_naimenovanie: { type: String },
+    },
+    { collection: "ts_naimenovanie" },
+);
+
+const deviceItemScheme = new Schema(
+    {
+        id_ts: { type: String },
+        type_id: { type: String },
+        ts_naimenovanie_id: { type: String },
+        inv_number: { type: String },
+        serial_number: { type: String },
+        quantity: { type: String },
+        price: { type: String },
+        state_id: { type: String },
+        status: { type: String },
+        comment: { type: String },
+        date_shoping: { type: String },
+    },
+    { collection: "oborudovanie" },
+);
+
 const zayavkaScheme = new Schema(
     {
         region_id: { type: String, required: true },
@@ -127,6 +161,21 @@ const zayavkaScheme = new Schema(
 
 const Ksa = mongoose.model("ksa", ksaScheme);
 const Region = mongoose.model("region", regScheme);
+const DeviceType = mongoose.model(
+    "type_ustroistva",
+    deviceTypeScheme,
+    "type_ustroistva",
+);
+const DeviceName = mongoose.model(
+    "ts_naimenovanie",
+    deviceNameScheme,
+    "ts_naimenovanie",
+);
+const DeviceItem = mongoose.model(
+    "oborudovanie",
+    deviceItemScheme,
+    "oborudovanie",
+);
 const Zayavka = mongoose.model("zayavka", zayavkaScheme);
 
 async function fetchRegionsSafe() {
@@ -149,6 +198,93 @@ async function fetchKsaSafe(filter = {}) {
     if (fromKsa.length > 0) return fromKsa;
 
     return db.collection("ksas").find(filter).toArray();
+}
+
+async function fetchDeviceTypesSafe() {
+    const fromModel = await DeviceType.find({}).sort({ id_type: 1 }).lean();
+    if (fromModel.length > 0) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["type_ustroistva", "type_ustroystva", "device_types"];
+
+    for (const collectionName of candidates) {
+        const deviceTypes = await db
+            .collection(collectionName)
+            .find({})
+            .sort({ id_type: 1 })
+            .toArray();
+        if (deviceTypes.length > 0) {
+            return deviceTypes;
+        }
+    }
+
+    return [];
+}
+
+async function fetchDeviceNamesSafe(typeId) {
+    const normalizedTypeId = String(typeId || "").trim();
+    if (!normalizedTypeId) return [];
+
+    const variants = new Set([normalizedTypeId]);
+    const numeric = Number(normalizedTypeId);
+    if (!Number.isNaN(numeric)) {
+        variants.add(String(numeric));
+    }
+
+    const filter = { type_id: { $in: Array.from(variants) } };
+    const fromModel = await DeviceName.find(filter)
+        .sort({ ts_naimenovanie: 1 })
+        .lean();
+    if (fromModel.length > 0) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["ts_naimenovanie", "device_names"];
+
+    for (const collectionName of candidates) {
+        const deviceNames = await db
+            .collection(collectionName)
+            .find(filter)
+            .sort({ ts_naimenovanie: 1 })
+            .toArray();
+        if (deviceNames.length > 0) {
+            return deviceNames;
+        }
+    }
+
+    return [];
+}
+
+async function fetchDeviceSerialsSafe(nameId) {
+    const normalizedNameId = String(nameId || "").trim();
+    if (!normalizedNameId) return [];
+
+    const variants = new Set([normalizedNameId]);
+    const numeric = Number(normalizedNameId);
+    if (!Number.isNaN(numeric)) {
+        variants.add(String(numeric));
+    }
+
+    const filter = { ts_naimenovanie_id: { $in: Array.from(variants) } };
+    const fromModel = await DeviceItem.find(filter)
+        .sort({ serial_number: 1 })
+        .lean();
+    if (fromModel.length > 0) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["oborudovanie", "equipment"];
+
+    for (const collectionName of candidates) {
+        const deviceItems = await db
+            .collection(collectionName)
+            .find(filter)
+            .sort({ serial_number: 1 })
+            .toArray();
+        if (deviceItems.length > 0) {
+            return deviceItems;
+        }
+    }
+
+    return [];
 }
 
 async function fetchZayavkiSafe() {
@@ -183,7 +319,9 @@ function escapeRegex(value) {
 }
 
 function normalizeUrgency(value) {
-    const normalized = String(value || "").trim().toLowerCase();
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase();
     return normalized === "urgent" ? "urgent" : "not_urgent";
 }
 
@@ -192,11 +330,15 @@ function getCreatedByValue(item) {
 }
 
 function matchesSearchTerm(value, normalizedSearch) {
-    return String(value || "").toLowerCase().includes(normalizedSearch);
+    return String(value || "")
+        .toLowerCase()
+        .includes(normalizedSearch);
 }
 
 function getMatchingKsaIds(ksaList, search) {
-    const normalizedSearch = String(search || "").trim().toLowerCase();
+    const normalizedSearch = String(search || "")
+        .trim()
+        .toLowerCase();
     if (!normalizedSearch) return [];
 
     return ksaList
@@ -214,7 +356,9 @@ function getMatchingKsaIds(ksaList, search) {
 }
 
 function matchesZayavkaSearch(item, search) {
-    const normalizedSearch = String(search || "").trim().toLowerCase();
+    const normalizedSearch = String(search || "")
+        .trim()
+        .toLowerCase();
     if (!normalizedSearch) return true;
 
     return [
@@ -269,7 +413,9 @@ async function deleteZayavkaSafe(id) {
 
     for (const collectionName of collections) {
         for (const filter of filters) {
-            const result = await db.collection(collectionName).deleteOne(filter);
+            const result = await db
+                .collection(collectionName)
+                .deleteOne(filter);
             if (result?.deletedCount > 0) {
                 return {
                     deleted: true,
@@ -312,11 +458,13 @@ async function updateZayavkaSafe(id, updateData) {
 
     for (const collectionName of collections) {
         for (const filter of filters) {
-            const result = await db.collection(collectionName).findOneAndUpdate(
-                filter,
-                { $set: updateData },
-                { returnDocument: "after" },
-            );
+            const result = await db
+                .collection(collectionName)
+                .findOneAndUpdate(
+                    filter,
+                    { $set: updateData },
+                    { returnDocument: "after" },
+                );
             const updatedDoc = result?.value || result || null;
             if (updatedDoc && updatedDoc._id) {
                 return {
@@ -361,7 +509,7 @@ app.post("/auth/login", async (req, res) => {
 
         if (!login || !password) {
             return res.status(400).json({
-                message: "Укажите логин и пароль",
+                message: "Введите логин и пароль",
             });
         }
 
@@ -403,6 +551,26 @@ app.get("/region", authMiddleware, async (req, res) => {
     const region = await fetchRegionsSafe();
     res.send(region);
     return region;
+});
+
+app.get("/device-types", authMiddleware, async (req, res) => {
+    const deviceTypes = await fetchDeviceTypesSafe();
+    res.send(deviceTypes);
+    return deviceTypes;
+});
+
+app.get("/device-names", authMiddleware, async (req, res) => {
+    const { typeId } = req.query;
+    const deviceNames = await fetchDeviceNamesSafe(typeId);
+    res.send(deviceNames);
+    return deviceNames;
+});
+
+app.get("/device-serials", authMiddleware, async (req, res) => {
+    const { nameId } = req.query;
+    const deviceSerials = await fetchDeviceSerialsSafe(nameId);
+    res.send(deviceSerials);
+    return deviceSerials;
 });
 
 app.post("/zayavki", authMiddleware, async (req, res) => {
@@ -609,7 +777,13 @@ app.get("/zayavki/:id", authMiddleware, async (req, res) => {
 
         if (!zayavka) {
             const db = mongoose.connection.db;
-            const collections = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
+            const collections = [
+                "zayavki",
+                "zayavka",
+                "zayavkas",
+                "notes",
+                "note",
+            ];
             const filters = [{ _id: idString }];
 
             if (mongoose.Types.ObjectId.isValid(idString)) {
@@ -621,7 +795,9 @@ app.get("/zayavki/:id", authMiddleware, async (req, res) => {
 
             for (const collectionName of collections) {
                 for (const filter of filters) {
-                    zayavka = await db.collection(collectionName).findOne(filter);
+                    zayavka = await db
+                        .collection(collectionName)
+                        .findOne(filter);
                     if (zayavka) break;
                 }
                 if (zayavka) break;
@@ -648,7 +824,9 @@ app.get("/zayavki/:id", authMiddleware, async (req, res) => {
             ksaList.map((ksaItem) => [String(ksaItem.id_ksa), ksaItem]),
         );
 
-        return res.status(200).json(enrichZayavka(zayavka, regionById, ksaById));
+        return res
+            .status(200)
+            .json(enrichZayavka(zayavka, regionById, ksaById));
     } catch (error) {
         console.error("[GET /zayavki/:id] error:", error);
         return res.status(500).json({
@@ -681,7 +859,8 @@ app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
             !String(contact_person || "").trim()
         ) {
             return res.status(400).json({
-                message: "Не заполнены обязательные поля для редактирования",
+                message:
+                    "Не заполнены обязательные поля для редактирования",
             });
         }
 
@@ -722,13 +901,15 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
 
         if (!decision || !String(decision).trim()) {
             return res.status(400).json({
-                message: "Поле 'Принятое решение' обязательно",
+                message:
+                    "Поле 'Принятое решение' обязательно",
             });
         }
 
         if (!decision_date) {
             return res.status(400).json({
-                message: "Поле 'Дата решения' обязательно",
+                message:
+                    "Поле 'Дата решения' обязательно",
             });
         }
 
@@ -824,7 +1005,10 @@ async function main() {
         try {
             await mongoose.connect(MONGO_URI);
         } catch (primaryError) {
-            console.error("[Mongo] primary connect failed:", primaryError.message);
+            console.error(
+                "[Mongo] primary connect failed:",
+                primaryError.message,
+            );
             if (MONGO_URI !== FALLBACK_LOCAL_URI) {
                 console.log("[Mongo] trying fallback local uri...");
                 await mongoose.connect(FALLBACK_LOCAL_URI);
@@ -841,3 +1025,5 @@ async function main() {
 }
 
 main();
+
+

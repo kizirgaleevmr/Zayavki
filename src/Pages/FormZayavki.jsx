@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchWithAuth, getAuthHeaders, AUTH_USER_KEY } from "../utils/auth";
 
@@ -7,6 +7,13 @@ export default function FormZayavki() {
     const [reg, setReg] = useState([]);
     const [checkRegion, setCheckRegion] = useState("");
     const [ksa, setKsa] = useState([]);
+    const [deviceTypes, setDeviceTypes] = useState([]);
+    const [deviceNames, setDeviceNames] = useState([]);
+    const [deviceSerials, setDeviceSerials] = useState([]);
+    const [selectedDeviceTypeId, setSelectedDeviceTypeId] = useState("");
+    const [selectedDeviceNameId, setSelectedDeviceNameId] = useState("");
+    const [selectedDeviceName, setSelectedDeviceName] = useState("");
+    const [selectedDeviceSerial, setSelectedDeviceSerial] = useState("");
     const [selectedRegion, setSelectedRegion] = useState({
         id: "",
         code: "",
@@ -21,13 +28,15 @@ export default function FormZayavki() {
         ksa: "",
     });
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
-    const deviceTypeLabels = {
-        terminal: "Терминал",
-        printer: "Принтер",
-        scanner: "Сканер",
-        pc: "ПК",
-        other: "Другое",
-    };
+
+    function getDeviceTypeLabel(typeId) {
+        const match = deviceTypes.find(
+            (item) =>
+                String(item?.id_type || "").trim() ===
+                String(typeId || "").trim(),
+        );
+        return String(match?.type || "").trim();
+    }
 
     function checkReg(evt) {
         const selectedId = evt.target.value;
@@ -44,6 +53,33 @@ export default function FormZayavki() {
 
     function checkKsa(evt) {
         setSelectedKsa(evt.target.value);
+    }
+
+    function checkDeviceType(evt) {
+        setSelectedDeviceTypeId(evt.target.value);
+        setSelectedDeviceNameId("");
+        setSelectedDeviceName("");
+        setSelectedDeviceSerial("");
+        setDeviceSerials([]);
+    }
+
+    function checkDeviceName(evt) {
+        const nextNameId = evt.target.value;
+        const selectedItem = deviceNames.find(
+            (item) =>
+                String(item?.id_naimenovanie || "").trim() ===
+                String(nextNameId || "").trim(),
+        );
+
+        setSelectedDeviceNameId(nextNameId);
+        setSelectedDeviceName(
+            String(selectedItem?.ts_naimenovanie || "").trim(),
+        );
+        setSelectedDeviceSerial("");
+    }
+
+    function checkDeviceSerial(evt) {
+        setSelectedDeviceSerial(evt.target.value);
     }
 
     function fileToDataUrl(file) {
@@ -102,9 +138,9 @@ export default function FormZayavki() {
                     selectedKsaItem?.ksa_adress ||
                     selectedKsaItem?.ksa_address ||
                     "",
-                device_type: formData.get("device_type"),
-                device_name: formData.get("device_name"),
-                device_serial: formData.get("device_serial"),
+                device_type: getDeviceTypeLabel(selectedDeviceTypeId),
+                device_name: selectedDeviceName,
+                device_serial: selectedDeviceSerial,
                 device_issue: formData.get("device_issue"),
                 contact_person: formData.get("contact_person"),
                 urgency: formData.get("urgency"),
@@ -125,11 +161,10 @@ export default function FormZayavki() {
                 throw new Error(result.message || "Ошибка отправки заявки");
             }
 
-            const deviceTypeValue = formData.get("device_type");
+            const deviceTypeValue = getDeviceTypeLabel(selectedDeviceTypeId);
             setSuccessData({
-                deviceType:
-                    deviceTypeLabels[deviceTypeValue] || deviceTypeValue,
-                deviceSerial: formData.get("device_serial"),
+                deviceType: deviceTypeValue,
+                deviceSerial: selectedDeviceSerial,
                 ksa:
                     selectedKsaItem?.nomer_ksa ||
                     selectedKsaItem?.ksa_naimenovanie ||
@@ -142,6 +177,12 @@ export default function FormZayavki() {
             setSelectedRegion({ id: "", code: "" });
             setSelectedKsa("");
             setKsa([]);
+            setSelectedDeviceTypeId("");
+            setSelectedDeviceNameId("");
+            setSelectedDeviceName("");
+            setSelectedDeviceSerial("");
+            setDeviceNames([]);
+            setDeviceSerials([]);
             navigate("/zayavki/all");
         } catch (error) {
             setSubmitMessage(error.message || "Ошибка отправки заявки");
@@ -151,6 +192,27 @@ export default function FormZayavki() {
     }
 
     useEffect(() => {
+        async function getDeviceTypes() {
+            try {
+                const response = await fetch(`${apiUrl}/device-types`, {
+                    method: "GET",
+                    headers: {
+                        ...getAuthHeaders(),
+                    },
+                });
+
+                if (response.ok) {
+                    const typeData = await response.json();
+                    setDeviceTypes(Array.isArray(typeData) ? typeData : []);
+                } else {
+                    setDeviceTypes([]);
+                }
+            } catch (error) {
+                setDeviceTypes([]);
+                console.error("Error details:", error);
+            }
+        }
+
         async function getRegion() {
             try {
                 const response = await fetch(`${apiUrl}/region`, {
@@ -169,8 +231,80 @@ export default function FormZayavki() {
             }
         }
 
+        getDeviceTypes();
         getRegion();
     }, [apiUrl]);
+
+    useEffect(() => {
+        async function getDeviceNamesByType() {
+            if (!selectedDeviceTypeId) {
+                setDeviceNames([]);
+                setSelectedDeviceNameId("");
+                setSelectedDeviceName("");
+                setDeviceSerials([]);
+                setSelectedDeviceSerial("");
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${apiUrl}/device-names?typeId=${encodeURIComponent(selectedDeviceTypeId)}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            ...getAuthHeaders(),
+                        },
+                    },
+                );
+
+                if (response.ok) {
+                    const nameData = await response.json();
+                    setDeviceNames(Array.isArray(nameData) ? nameData : []);
+                } else {
+                    setDeviceNames([]);
+                }
+            } catch (error) {
+                setDeviceNames([]);
+                console.error("Error details:", error);
+            }
+        }
+
+        getDeviceNamesByType();
+    }, [apiUrl, selectedDeviceTypeId]);
+
+    useEffect(() => {
+        async function getDeviceSerialsByName() {
+            if (!selectedDeviceNameId) {
+                setDeviceSerials([]);
+                setSelectedDeviceSerial("");
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${apiUrl}/device-serials?nameId=${encodeURIComponent(selectedDeviceNameId)}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            ...getAuthHeaders(),
+                        },
+                    },
+                );
+
+                if (response.ok) {
+                    const serialData = await response.json();
+                    setDeviceSerials(Array.isArray(serialData) ? serialData : []);
+                } else {
+                    setDeviceSerials([]);
+                }
+            } catch (error) {
+                setDeviceSerials([]);
+                console.error("Error details:", error);
+            }
+        }
+
+        getDeviceSerialsByName();
+    }, [apiUrl, selectedDeviceNameId]);
 
     useEffect(() => {
         async function getKsaByRegion() {
@@ -285,17 +419,34 @@ export default function FormZayavki() {
                             <label className="label">Тип устройства</label>
                             <div className="control">
                                 <div className="select">
-                                    <select name="device_type" required>
+                                    <select
+                                        name="device_type"
+                                        required
+                                        value={selectedDeviceTypeId}
+                                        onChange={checkDeviceType}
+                                    >
                                         <option value="">
                                             Выбрать тип устройства
                                         </option>
-                                        <option value="terminal">
-                                            Терминал
-                                        </option>
-                                        <option value="printer">Принтер</option>
-                                        <option value="scanner">Сканер</option>
-                                        <option value="pc">ПК</option>
-                                        <option value="other">Другое</option>
+                                        {deviceTypes.map((item) => {
+                                            const typeId = String(
+                                                item?.id_type || "",
+                                            ).trim();
+                                            const typeValue = String(
+                                                item?.type || "",
+                                            ).trim();
+                                            if (!typeId || !typeValue)
+                                                return null;
+
+                                            return (
+                                                <option
+                                                    key={typeId}
+                                                    value={typeId}
+                                                >
+                                                    {typeValue}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </div>
                             </div>
@@ -305,27 +456,76 @@ export default function FormZayavki() {
                                 Наименование устройства
                             </label>
                             <div className="control">
-                                <input
-                                    className="input"
-                                    type="text"
-                                    name="device_name"
-                                    placeholder="Введите наименование"
-                                    required
-                                />
+                                <div className="select is-fullwidth">
+                                    <select
+                                        name="device_name"
+                                        required
+                                        value={selectedDeviceNameId}
+                                        onChange={checkDeviceName}
+                                        disabled={!selectedDeviceTypeId}
+                                    >
+                                        <option value="">
+                                            {selectedDeviceTypeId
+                                                ? "Выбрать наименование"
+                                                : "Сначала выберите тип устройства"}
+                                        </option>
+                                        {deviceNames.map((item) => {
+                                            const nameId = String(
+                                                item?.id_naimenovanie || "",
+                                            ).trim();
+                                            const nameValue = String(
+                                                item?.ts_naimenovanie || "",
+                                            ).trim();
+                                            if (!nameId || !nameValue) return null;
+
+                                            return (
+                                                <option
+                                                    key={nameId}
+                                                    value={nameId}
+                                                >
+                                                    {nameValue}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div className="field">
                             <label className="label">
-                                Серийный номер устройства
+                                Сериийный номер устройства
                             </label>
                             <div className="control">
-                                <input
-                                    className="input"
-                                    type="text"
-                                    name="device_serial"
-                                    placeholder="Введите серийный номер"
-                                    required
-                                />
+                                <div className="select is-fullwidth">
+                                    <select
+                                        name="device_serial"
+                                        required
+                                        value={selectedDeviceSerial}
+                                        onChange={checkDeviceSerial}
+                                        disabled={!selectedDeviceNameId}
+                                    >
+                                        <option value="">
+                                            {selectedDeviceNameId
+                                                ? "Выбрать серийный номер"
+                                                : "Сначала выберите наименование"}
+                                        </option>
+                                        {deviceSerials.map((item) => {
+                                            const serialValue = String(
+                                                item?.serial_number || "",
+                                            ).trim();
+                                            if (!serialValue) return null;
+
+                                            return (
+                                                <option
+                                                    key={item.id_ts || serialValue}
+                                                    value={serialValue}
+                                                >
+                                                    {serialValue}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -345,10 +545,18 @@ export default function FormZayavki() {
                             <label className="label">Срочность</label>
                             <div className="control">
                                 <div className="select">
-                                    <select name="urgency" required defaultValue="">
-                                        <option value="">Выбрать срочность</option>
+                                    <select
+                                        name="urgency"
+                                        required
+                                        defaultValue=""
+                                    >
+                                        <option value="">
+                                            Выбрать срочность
+                                        </option>
                                         <option value="urgent">Срочно</option>
-                                        <option value="not_urgent">Не срочно</option>
+                                        <option value="not_urgent">
+                                            Не срочно
+                                        </option>
                                     </select>
                                 </div>
                             </div>
@@ -450,3 +658,7 @@ export default function FormZayavki() {
 
 //TODO!- [ ]  добавить при добавление решения в заявки информацию о том кто добавил решение (фио и должность) и дату добавления решения
 //TODO! -  добавить при решение заявки информацию для отгрузки оборудования и информацию кто отгрузил оборудования куда отгрузил и дату отгрузки
+
+
+
+
