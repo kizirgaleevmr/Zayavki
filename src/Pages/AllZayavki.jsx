@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import ExcelJS from "exceljs";
 import { fetchWithAuth, AUTH_USER_KEY } from "../utils/auth";
 
@@ -140,7 +140,14 @@ export default function AllZayavki() {
                 }
             }
         },
-        [apiUrl, currentPage, hasLoadedOnce, PAGE_SIZE, searchText, statusFilter],
+        [
+            apiUrl,
+            currentPage,
+            hasLoadedOnce,
+            PAGE_SIZE,
+            searchText,
+            statusFilter,
+        ],
     );
 
     useEffect(() => {
@@ -235,7 +242,7 @@ export default function AllZayavki() {
             }
             setDetailsZayavka(result);
         } catch (err) {
-            setDetailsError(err.message || "Ошибка загрузки деталей");
+            setDetailsError(err.message || "Ошибка загрузки деталей заявки");
         } finally {
             setIsDetailsLoading(false);
         }
@@ -318,17 +325,17 @@ strong { display: inline-block; min-width: 180px; }
 </style>
 </head>
 <body>
-<h1>Информация по заявке</h1>
+<h1> Информация по заявке</h1>
 <p><strong>Дата:</strong> ${createdAt}</p>
 <p><strong>Регион:</strong> ${detailsZayavka.region_name || "-"}</p>
 <p><strong>КСА:</strong> ${ksaValue}</p>
 <p><strong>Адрес КСА:</strong> ${detailsZayavka.ksa_address || "-"}</p>
 <p><strong>Тип устройства:</strong> ${deviceTypeValue}</p>
-<p><strong>Наименование:</strong> ${detailsZayavka.device_name || "-"}</p>
+<p><strong>Название:</strong> ${detailsZayavka.device_name || "-"}</p>
 <p><strong>Серийный номер:</strong> ${detailsZayavka.device_serial || "-"}</p>
 <p><strong>Срочность:</strong> ${getUrgencyLabel(detailsZayavka)}</p>
 <p><strong>Контактное лицо:</strong> ${detailsZayavka.contact_person || "-"}</p>
-<p><strong>Неисправность:</strong> ${detailsZayavka.device_issue || "-"}</p>
+<p><strong>Неправильность:</strong> ${detailsZayavka.device_issue || "-"}</p>
 <p><strong>Решение:</strong> ${detailsZayavka.decision || "-"}</p>
 <p><strong>Дата решения:</strong> ${decisionDate}</p>
 <div class="photo">
@@ -549,13 +556,33 @@ ${photoBlock}
                 { header: "Фото", key: "photo", width: 14 },
                 { header: "КСА", key: "ksa", width: 14 },
                 { header: "Адрес КСА", key: "ksaAddress", width: 28 },
-                { header: "Тип устройства", key: "deviceType", width: 18 },
-                { header: "Наименование", key: "deviceName", width: 28 },
-                { header: "Серийный номер", key: "deviceSerial", width: 22 },
+                {
+                    header: "Тип устройства",
+                    key: "deviceType",
+                    width: 18,
+                },
+                {
+                    header: "Наименование",
+                    key: "deviceName",
+                    width: 28,
+                },
+                {
+                    header: "Серийный номер",
+                    key: "deviceSerial",
+                    width: 22,
+                },
                 { header: "Срочность", key: "urgency", width: 16 },
-                { header: "Контактное лицо", key: "contactPerson", width: 24 },
+                {
+                    header: "Контактное лицо",
+                    key: "contactPerson",
+                    width: 24,
+                },
                 { header: "Решение", key: "decision", width: 30 },
-                { header: "Дата решения", key: "decisionDate", width: 16 },
+                {
+                    header: "Дата решения",
+                    key: "decisionDate",
+                    width: 16,
+                },
             ];
 
             exportItems.forEach((item, index) => {
@@ -655,7 +682,7 @@ ${photoBlock}
                             <strong>{user.login || user.name}</strong>
                         </>
                     ) : (
-                        "Пользователь не определён"
+                        "Пользователь не определен"
                     )}
                 </span>
             </div>
@@ -671,7 +698,7 @@ ${photoBlock}
                             >
                                 <option value="all">Все</option>
                                 <option value="resolved">Решенные</option>
-                                <option value="unresolved">Нерешенные</option>
+                                <option value="unresolved">Не решенные</option>
                             </select>
                         </div>
                         <input
@@ -705,7 +732,7 @@ ${photoBlock}
                     </div>
                     <p className="help mt-2">
                         Показано: {zayavki.length} из {totalItems}
-                        {lastUpdated ? ` • обновлено: ${lastUpdated}` : ""}
+                        {lastUpdated ? `• обновлено: ${lastUpdated}` : ""}
                     </p>
                     {isTableLoading ? (
                         <p className="help mt-1">Обновление таблицы...</p>
@@ -718,16 +745,19 @@ ${photoBlock}
             {zayavki.length === 0 ? (
                 <p>
                     {searchText.trim()
-                        ? "По вашему поиску ничего не найдено."
+                        ? "Заявок по вашему запросу не найдено."
                         : "Заявок пока нет."}
                 </p>
             ) : (
                 <>
-                    <div className="table-container zayavki-table-container zayavki-desktop-view" aria-busy={isTableLoading}>
+                    <div
+                        className="table-container zayavki-table-container zayavki-desktop-view"
+                        aria-busy={isTableLoading}
+                    >
                         <table className="table is-fullwidth is-striped is-hoverable">
                             <thead>
                                 <tr>
-                                    <th>№ заявки</th>
+                                    <th>в„– заявки</th>
                                     <th>Дата</th>
                                     <th>Фото</th>
                                     <th>КСА</th>
@@ -736,7 +766,6 @@ ${photoBlock}
                                     <th>Серийный номер</th>
                                     <th>Срочность</th>
                                     <th>Неисправность</th>
-
                                     <th>Действия</th>
                                 </tr>
                             </thead>
@@ -777,7 +806,7 @@ ${photoBlock}
                                                 />
                                             ) : item.device_photo?.file_name &&
                                               item.device_photo.file_name !==
-                                                  "нету фото" ? (
+                                                  "нет фото" ? (
                                                 "Есть"
                                             ) : (
                                                 "-"
@@ -811,7 +840,9 @@ ${photoBlock}
                                             </div>
                                         </td>
                                         <td>
-                                            <span className={`tag ${getUrgencyTagClass(item)}`}>
+                                            <span
+                                                className={`tag ${getUrgencyTagClass(item)}`}
+                                            >
                                                 {getUrgencyLabel(item)}
                                             </span>
                                         </td>
@@ -960,7 +991,10 @@ ${photoBlock}
                                 className={`zayavka-card ${
                                     getUrgencyValue(item) === "urgent"
                                         ? "zayavka-card-urgent"
-                                        : ""
+                                        : (item.decision || "").trim() &&
+                                            (item.decision || "").trim() !== "-"
+                                          ? "zayavka-card-resolved"
+                                          : ""
                                 }`}
                                 style={getCardStyle(item)}
                             >
@@ -973,7 +1007,7 @@ ${photoBlock}
                                             : "-"}
                                     </p>
                                     <span className="tag is-info">
-                                        №{" "}
+                                        в„–{" "}
                                         {item._id
                                             ? String(item._id).slice(-6)
                                             : "-"}
@@ -984,7 +1018,9 @@ ${photoBlock}
                                             item.ksa_id ||
                                             "-"}
                                     </span>
-                                    <span className={`tag ${getUrgencyTagClass(item)}`}>
+                                    <span
+                                        className={`tag ${getUrgencyTagClass(item)}`}
+                                    >
                                         {getUrgencyLabel(item)}
                                     </span>
                                 </div>
@@ -1030,7 +1066,7 @@ ${photoBlock}
                                             {getUrgencyLabel(item)}
                                         </p>
                                         <p>
-                                            <strong>Неисправность:</strong>{" "}
+                                            <strong>Неправильность:</strong>{" "}
                                             {item.device_issue || "-"}
                                         </p>
                                         <p>
@@ -1125,7 +1161,7 @@ ${photoBlock}
                                 }
                                 disabled={currentPage === totalPages}
                             >
-                                Вперед
+                                Вперёд
                             </button>
                             <ul className="pagination-list">
                                 <li>
@@ -1184,7 +1220,7 @@ ${photoBlock}
                             </>
                         ) : null}
                         <div className="field">
-                            <label className="label">Решение</label>
+                            <label className="label">Решениеµ</label>
                             <div className="control">
                                 <textarea
                                     className="textarea"
@@ -1288,7 +1324,7 @@ ${photoBlock}
                                         "-"}
                                 </p>
                                 <p>
-                                    <strong>Наименование:</strong>{" "}
+                                    <strong>Название:</strong>{" "}
                                     {detailsZayavka.device_name || "-"}
                                 </p>
                                 <p>
@@ -1308,7 +1344,7 @@ ${photoBlock}
                                     {getCreatedByLabel(detailsZayavka)}
                                 </p>
                                 <p>
-                                    <strong>Неисправность:</strong>{" "}
+                                    <strong>Неправильность:</strong>{" "}
                                     {detailsZayavka.device_issue || "-"}
                                 </p>
                                 <p>
@@ -1458,7 +1494,9 @@ ${photoBlock}
                                         }
                                     >
                                         <option value="urgent">Срочно</option>
-                                        <option value="not_urgent">Не срочно</option>
+                                        <option value="not_urgent">
+                                            Не срочно
+                                        </option>
                                     </select>
                                 </div>
                             </div>

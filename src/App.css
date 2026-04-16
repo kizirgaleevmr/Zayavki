@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     color-scheme: light;
     --font-sans: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
     --page-bg: #eef4f2;
@@ -752,7 +752,10 @@ main.mt-4 {
 }
 
 .all-zayavki-page .table tbody tr.z-row-resolved td {
-    background: rgba(232, 248, 238, 0.96);
+    background: rgba(220, 245, 228, 0.98);
+    border-top-color: rgba(62, 137, 88, 0.2);
+    border-bottom-color: rgba(62, 137, 88, 0.2);
+    color: #1f5a34;
 }
 
 .all-zayavki-page .table tbody tr.z-row-urgent td {
@@ -1265,4 +1268,16 @@ main.mt-4 {
     .modal-card-foot .button {
         flex: 1 1 100%;
     }
+}
+
+
+
+
+.all-zayavki-page .table tbody tr.z-row-resolved td:first-child {
+    box-shadow: inset 4px 0 0 #3e8958;
+}
+
+.all-zayavki-page .zayavka-card-resolved {
+    border-color: rgba(62, 137, 88, 0.28);
+    box-shadow: 0 14px 26px rgba(62, 137, 88, 0.12);
 }
