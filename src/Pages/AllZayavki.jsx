@@ -294,6 +294,176 @@ export default function AllZayavki() {
         });
     }
 
+    function handleEditDeviceTypeChange(evt) {
+        const nextTypeId = evt.target.value;
+        const selectedType = editDeviceTypes.find(
+            (item) => String(item?.id_type || "").trim() === nextTypeId,
+        );
+
+        setEditSelectedDeviceTypeId(nextTypeId);
+        setEditSelectedDeviceNameId("");
+        setEditDeviceNames([]);
+        setEditDeviceSerials([]);
+        setEditForm((prev) => ({
+            ...prev,
+            device_type: String(selectedType?.type || "").trim(),
+            device_name: "",
+            device_serial: "",
+        }));
+    }
+
+    function handleEditDeviceNameChange(evt) {
+        const nextNameValue = evt.target.value;
+        const selectedName = editDeviceNames.find(
+            (item) =>
+                normalizeText(item?.ts_naimenovanie) ===
+                normalizeText(nextNameValue),
+        );
+
+        setEditSelectedDeviceNameId(
+            String(selectedName?.id_naimenovanie || "").trim(),
+        );
+        if (!selectedName) {
+            setEditDeviceSerials([]);
+        }
+        setEditForm((prev) => ({
+            ...prev,
+            device_name: nextNameValue,
+            device_serial: "",
+        }));
+    }
+
+    function handleEditDeviceSerialChange(evt) {
+        setEditForm((prev) => ({
+            ...prev,
+            device_serial: evt.target.value,
+        }));
+    }
+
+    useEffect(() => {
+        if (!isEditModalOpen) return;
+
+        async function getEditDeviceTypes() {
+            try {
+                const response = await fetchWithAuth(`${apiUrl}/device-types`, {
+                    method: "GET",
+                });
+
+                if (response.ok) {
+                    const typeData = await response.json();
+                    setEditDeviceTypes(Array.isArray(typeData) ? typeData : []);
+                } else {
+                    setEditDeviceTypes([]);
+                }
+            } catch (error) {
+                setEditDeviceTypes([]);
+                console.error("Error details:", error);
+            }
+        }
+
+        getEditDeviceTypes();
+    }, [apiUrl, isEditModalOpen]);
+
+    useEffect(() => {
+        if (!isEditModalOpen || !editForm.device_type || !editDeviceTypes.length) {
+            return;
+        }
+
+        const nextTypeId = getEditDeviceTypeIdByValue(editForm.device_type);
+        if (nextTypeId !== editSelectedDeviceTypeId) {
+            setEditSelectedDeviceTypeId(nextTypeId);
+        }
+    }, [
+        editDeviceTypes,
+        editForm.device_type,
+        editSelectedDeviceTypeId,
+        isEditModalOpen,
+    ]);
+
+    useEffect(() => {
+        if (!isEditModalOpen || !editSelectedDeviceTypeId) {
+            setEditDeviceNames([]);
+            setEditSelectedDeviceNameId("");
+            setEditDeviceSerials([]);
+            return;
+        }
+
+        async function getEditDeviceNames() {
+            try {
+                const response = await fetchWithAuth(
+                    `${apiUrl}/device-names?typeId=${encodeURIComponent(
+                        editSelectedDeviceTypeId,
+                    )}`,
+                    {
+                        method: "GET",
+                    },
+                );
+
+                if (response.ok) {
+                    const nameData = await response.json();
+                    setEditDeviceNames(Array.isArray(nameData) ? nameData : []);
+                } else {
+                    setEditDeviceNames([]);
+                }
+            } catch (error) {
+                setEditDeviceNames([]);
+                console.error("Error details:", error);
+            }
+        }
+
+        getEditDeviceNames();
+    }, [apiUrl, editSelectedDeviceTypeId, isEditModalOpen]);
+
+    useEffect(() => {
+        if (!isEditModalOpen || !editForm.device_name || !editDeviceNames.length) {
+            return;
+        }
+
+        const nextNameId = getEditDeviceNameIdByValue(editForm.device_name);
+        if (nextNameId !== editSelectedDeviceNameId) {
+            setEditSelectedDeviceNameId(nextNameId);
+        }
+    }, [
+        editDeviceNames,
+        editForm.device_name,
+        editSelectedDeviceNameId,
+        isEditModalOpen,
+    ]);
+
+    useEffect(() => {
+        if (!isEditModalOpen || !editSelectedDeviceNameId) {
+            setEditDeviceSerials([]);
+            return;
+        }
+
+        async function getEditDeviceSerials() {
+            try {
+                const response = await fetchWithAuth(
+                    `${apiUrl}/device-serials?nameId=${encodeURIComponent(
+                        editSelectedDeviceNameId,
+                    )}`,
+                    {
+                        method: "GET",
+                    },
+                );
+
+                if (response.ok) {
+                    const serialData = await response.json();
+                    setEditDeviceSerials(
+                        Array.isArray(serialData) ? serialData : [],
+                    );
+                } else {
+                    setEditDeviceSerials([]);
+                }
+            } catch (error) {
+                setEditDeviceSerials([]);
+                console.error("Error details:", error);
+            }
+        }
+
+        getEditDeviceSerials();
+    }, [apiUrl, editSelectedDeviceNameId, isEditModalOpen]);
+
     function printDetails() {
         if (!detailsZayavka) return;
 
@@ -765,7 +935,7 @@ ${photoBlock}
                         <table className="table is-fullwidth is-striped is-hoverable">
                             <thead>
                                 <tr>
-                                    <th>в„– заявки</th>
+                                    <th>№ заявки</th>
                                     <th>Дата</th>
                                     <th>Фото</th>
                                     <th>КСА</th>
@@ -1597,7 +1767,4 @@ ${photoBlock}
         </section>
     );
 }
-
-
-
 
