@@ -1325,3 +1325,42 @@ main.mt-4 {
     }
 }
 
+
+.modal-card-head,
+.modal-card-foot {
+    flex-shrink: 0;
+}
+
+.z-decision-modal,
+.z-edit-modal {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 40px);
+}
+
+.z-decision-modal .modal-card-body,
+.z-edit-modal .modal-card-body {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+    padding-right: 18px;
+}
+
+@media (min-width: 768px) {
+    .z-decision-modal,
+    .z-edit-modal {
+        width: min(920px, calc(100vw - 48px));
+    }
+}
+
+@media (max-width: 767px) {
+    .z-decision-modal,
+    .z-edit-modal {
+        max-height: calc(100vh - 24px);
+    }
+
+    .z-decision-modal .modal-card-body,
+    .z-edit-modal .modal-card-body {
+        max-height: calc(100vh - 170px);
+        padding-right: 10px;
+    }
+}

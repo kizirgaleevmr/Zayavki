@@ -1410,7 +1410,7 @@ ${photoBlock}
                     className="modal-background"
                     onClick={closeDecisionModal}
                 />
-                <div className="modal-card">
+                <div className="modal-card z-decision-modal">
                     <header className="modal-card-head">
                         <p className="modal-card-title">Решение по заявке</p>
                         <button
@@ -1660,7 +1660,7 @@ ${photoBlock}
 
             <div className={`modal ${isEditModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeEditModal} />
-                <div className="modal-card">
+                <div className="modal-card z-edit-modal">
                     <header className="modal-card-head">
                         <p className="modal-card-title">
                             Редактирование заявки
@@ -1866,6 +1866,8 @@ ${photoBlock}
         </section>
     );
 }
+
+
 
 
 
