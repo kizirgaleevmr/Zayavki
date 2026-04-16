@@ -389,7 +389,7 @@ main.mt-4 {
 }
 
 .button {
-    min-height: 46px;
+    min-height: 36px;
     border-radius: 16px !important;
     font-weight: 700;
     padding-inline: 18px;
@@ -436,7 +436,7 @@ main.mt-4 {
 }
 
 .button.is-small {
-    min-height: 38px;
+    min-height: 20px;
     border-radius: 14px !important;
 }
 
@@ -650,13 +650,13 @@ main.mt-4 {
 }
 
 .all-zayavki-page .zayavki-toolbar {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 12px !important;
 }
 
 .all-zayavki-page .zayavki-search {
-    min-width: 280px;
-    flex: 1 1 320px;
+    min-width: 625px;
+    flex: 1 1 625px;
 }
 
 .all-zayavki-page .zayavki-table-container {
@@ -677,7 +677,7 @@ main.mt-4 {
     table-layout: fixed;
     background: transparent;
     border-collapse: separate;
-    border-spacing: 0 10px;
+    border-spacing: 0;
     font-size: 13px;
 }
 
@@ -698,7 +698,7 @@ main.mt-4 {
 }
 
 .all-zayavki-page .table tbody td {
-    padding: 8px 10px;
+    padding: 5px 10px;
     background: rgba(255, 255, 255, 0.9);
     border-top: 1px solid rgba(24, 54, 64, 0.12);
     border-bottom: 1px solid rgba(24, 54, 64, 0.12);
@@ -769,7 +769,7 @@ main.mt-4 {
 .all-zayavki-page .table tbody td:nth-child(1) {
     width: 72px;
     text-align: center;
-    white-space: nowrap;
+    white-space: wrap;
 }
 
 .all-zayavki-page .table thead th:nth-child(2),
@@ -886,18 +886,16 @@ main.mt-4 {
     gap: 4px;
     width: 100%;
     max-width: 100%;
-    padding: 3px;
+    padding: 0px;
     box-sizing: border-box;
     border-radius: 999px;
-    border: 1px solid rgba(24, 54, 64, 0.12);
-    background: rgba(255, 255, 255, 0.82);
     overflow: hidden;
 }
 
 .all-zayavki-page .z-action-btn {
-    width: 28px;
-    min-width: 28px;
-    height: 28px;
+    width: 18px;
+    min-width: 18px;
+    height: 18px;
     padding: 0;
     border-radius: 10px !important;
     box-shadow: none !important;
