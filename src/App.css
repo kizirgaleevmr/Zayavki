@@ -1139,6 +1139,7 @@ main.mt-4 {
     .all-zayavki-page,
     .container.pt-6 {
         padding: 24px 20px 26px;
+        min-height: calc(100vh - 300px);
     }
 
     .all-zayavki-page .field.mb-4 {
@@ -1271,9 +1272,6 @@ main.mt-4 {
     }
 }
 
-
-
-
 .all-zayavki-page .table tbody tr.z-row-resolved td:first-child {
     box-shadow: inset 4px 0 0 #3e8958;
 }
@@ -1282,7 +1280,6 @@ main.mt-4 {
     border-color: rgba(62, 137, 88, 0.28);
     box-shadow: 0 14px 26px rgba(62, 137, 88, 0.12);
 }
-
 
 .all-zayavki-page .table tbody tr.z-row-urgent-resolved td {
     background: #d8f1e1;
@@ -1294,9 +1291,6 @@ main.mt-4 {
 .all-zayavki-page .table tbody tr.z-row-urgent-resolved td:first-child {
     box-shadow: inset 4px 0 0 #d9783d;
 }
-
-
-
 
 @media (min-width: 1024px) {
     .container {
@@ -1324,7 +1318,6 @@ main.mt-4 {
         flex-basis: auto;
     }
 }
-
 
 .modal-card-head,
 .modal-card-foot {
