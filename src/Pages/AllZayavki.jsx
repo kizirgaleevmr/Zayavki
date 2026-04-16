@@ -1485,7 +1485,7 @@ ${photoBlock}
                             </>
                         ) : null}
                         <div className="field">
-                            <label className="label">Решениеµ</label>
+                            <label className="label">Решение</label>
                             <div className="control">
                                 <textarea
                                     className="textarea"
