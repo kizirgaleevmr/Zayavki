@@ -73,7 +73,9 @@ export default function AllZayavki() {
     }
 
     function normalizeText(value) {
-        return String(value || "").trim().toLowerCase();
+        return String(value || "")
+            .trim()
+            .toLowerCase();
     }
 
     function getEditDeviceTypeIdByValue(value) {
@@ -96,8 +98,7 @@ export default function AllZayavki() {
         if (!rawValue) return "";
 
         const byId = editDeviceNames.find(
-            (item) =>
-                String(item?.id_naimenovanie || "").trim() === rawValue,
+            (item) => String(item?.id_naimenovanie || "").trim() === rawValue,
         );
         if (byId) return String(byId.id_naimenovanie || "").trim();
 
@@ -417,7 +418,11 @@ export default function AllZayavki() {
     }, [apiUrl, isEditModalOpen]);
 
     useEffect(() => {
-        if (!isEditModalOpen || !editForm.device_type || !editDeviceTypes.length) {
+        if (
+            !isEditModalOpen ||
+            !editForm.device_type ||
+            !editDeviceTypes.length
+        ) {
             return;
         }
 
@@ -467,7 +472,11 @@ export default function AllZayavki() {
     }, [apiUrl, editSelectedDeviceTypeId, isEditModalOpen]);
 
     useEffect(() => {
-        if (!isEditModalOpen || !editForm.device_name || !editDeviceNames.length) {
+        if (
+            !isEditModalOpen ||
+            !editForm.device_name ||
+            !editDeviceNames.length
+        ) {
             return;
         }
 
@@ -1714,7 +1723,10 @@ ${photoBlock}
                                             }
 
                                             return (
-                                                <option key={typeId} value={typeId}>
+                                                <option
+                                                    key={typeId}
+                                                    value={typeId}
+                                                >
                                                     {typeValue}
                                                 </option>
                                             );
@@ -1805,6 +1817,27 @@ ${photoBlock}
                             </div>
                         </div>
                         <div className="field">
+                            <label className="label">Срочность</label>
+                            <div className="control">
+                                <div className="select is-fullwidth">
+                                    <select
+                                        value={editForm.urgency}
+                                        onChange={(e) =>
+                                            setEditForm((prev) => ({
+                                                ...prev,
+                                                urgency: e.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="not_urgent">
+                                            Не срочно
+                                        </option>
+                                        <option value="urgent">Срочно</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="field">
                             <label className="label">Неисправность</label>
                             <div className="control">
                                 <textarea
@@ -1834,25 +1867,6 @@ ${photoBlock}
                                         }))
                                     }
                                 />
-                            </div>
-                        </div>
-                        <div className="field">
-                            <label className="label">Срочность</label>
-                            <div className="control">
-                                <div className="select is-fullwidth">
-                                    <select
-                                        value={editForm.urgency}
-                                        onChange={(e) =>
-                                            setEditForm((prev) => ({
-                                                ...prev,
-                                                urgency: e.target.value,
-                                            }))
-                                        }
-                                    >
-                                        <option value="not_urgent">Не срочно</option>
-                                        <option value="urgent">Срочно</option>
-                                    </select>
-                                </div>
                             </div>
                         </div>
                         {/* Поле "Адрес КСА" удалено по запросу */}
@@ -1885,12 +1899,3 @@ ${photoBlock}
         </section>
     );
 }
-
-
-
-
-
-
-
-
-
