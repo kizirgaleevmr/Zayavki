@@ -61,6 +61,10 @@ export default function AllZayavki() {
         not_urgent: "Не срочно",
     };
 
+    function getDeviceTypeText(value) {
+        return deviceTypeLabels[value] || value || "-";
+    }
+
     const getAllZayavki = useCallback(
         async (silent = false) => {
             try {
@@ -174,12 +178,14 @@ export default function AllZayavki() {
     }
 
     function getRowClassName(item) {
+        const decision = (item.decision || "").trim();
+        const isResolved = decision && decision !== "-";
+
         if (getUrgencyValue(item) === "urgent") {
-            return "z-row-urgent";
+            return isResolved ? "z-row-urgent-resolved" : "z-row-urgent";
         }
 
-        const decision = (item.decision || "").trim();
-        return decision && decision !== "-" ? "z-row-resolved" : "z-row-open";
+        return isResolved ? "z-row-resolved" : "z-row-open";
     }
 
     function getCreatedByLabel(item) {
@@ -187,15 +193,17 @@ export default function AllZayavki() {
     }
 
     function getCardStyle(item) {
+        const decision = (item.decision || "").trim();
+        const isResolved = decision && decision !== "-";
+
         if (getUrgencyValue(item) === "urgent") {
             return {
-                backgroundColor: "#fff1e7",
+                backgroundColor: isResolved ? "#d8f1e1" : "#fff1e7",
                 borderColor: "rgba(217, 120, 61, 0.24)",
             };
         }
 
-        const decision = (item.decision || "").trim();
-        return decision && decision !== "-"
+        return isResolved
             ? { backgroundColor: "#e8f8ee" }
             : { backgroundColor: "#fdeeee" };
     }
@@ -1209,12 +1217,38 @@ ${photoBlock}
                                             : "-"}
                                     </span>
                                 </p>
-                                <p className="mb-3">
+                                <p className="mb-2">
                                     <span className="has-text-weight-semibold">
                                         Номер КСА:
                                     </span>{" "}
                                     <span>
                                         {selectedZayavka.ksa_number || "-"}
+                                    </span>
+                                </p>
+                                <p className="mb-2">
+                                    <span className="has-text-weight-semibold">
+                                        Тип устройства:
+                                    </span>{" "}
+                                    <span>
+                                        {getDeviceTypeText(
+                                            selectedZayavka.device_type,
+                                        )}
+                                    </span>
+                                </p>
+                                <p className="mb-2">
+                                    <span className="has-text-weight-semibold">
+                                        Наименование:
+                                    </span>{" "}
+                                    <span>
+                                        {selectedZayavka.device_name || "-"}
+                                    </span>
+                                </p>
+                                <p className="mb-3">
+                                    <span className="has-text-weight-semibold">
+                                        Серийный номер:
+                                    </span>{" "}
+                                    <span>
+                                        {selectedZayavka.device_serial || "-"}
                                     </span>
                                 </p>
                             </>
@@ -1563,3 +1597,7 @@ ${photoBlock}
         </section>
     );
 }
+
+
+
+

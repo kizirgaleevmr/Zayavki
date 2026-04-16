@@ -1281,3 +1281,16 @@ main.mt-4 {
     border-color: rgba(62, 137, 88, 0.28);
     box-shadow: 0 14px 26px rgba(62, 137, 88, 0.12);
 }
+
+
+.all-zayavki-page .table tbody tr.z-row-urgent-resolved td {
+    background: #d8f1e1;
+    border-top-color: rgba(217, 120, 61, 0.22);
+    border-bottom-color: rgba(217, 120, 61, 0.22);
+    color: #1f5a34;
+}
+
+.all-zayavki-page .table tbody tr.z-row-urgent-resolved td:first-child {
+    box-shadow: inset 4px 0 0 #d9783d;
+}
+
