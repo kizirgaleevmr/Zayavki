@@ -1,9 +1,11 @@
 import "./App.css";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { clearAuthSession, getAuthHeaders } from "./utils/auth";
+import { getApiUrl } from "./utils/api";
 import logo from "./assets/logo2.png";
+
 function App() {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
+    const apiUrl = getApiUrl();
     const navigate = useNavigate();
 
     async function exitUsers() {
@@ -43,13 +45,39 @@ function App() {
                                             isActive ? "active" : "is-white"
                                         }
                                     >
-                                        Заявки
+                                        Заявки по ремонту
                                     </span>
                                 )}
                             </NavLink>
                         </div>
                         <div className="navbar-item">
-                            <NavLink to="/allMessage">
+                            <NavLink to="/consultations">
+                                {({ isActive }) => (
+                                    <span
+                                        className={
+                                            isActive ? "active" : "is-white"
+                                        }
+                                    >
+                                        Консультации
+                                    </span>
+                                )}
+                            </NavLink>
+                        </div>
+                        <div className="navbar-item">
+                            <NavLink to="/knowledgeBase">
+                                {({ isActive }) => (
+                                    <span
+                                        className={
+                                            isActive ? "active" : "is-white"
+                                        }
+                                    >
+                                        База знаний
+                                    </span>
+                                )}
+                            </NavLink>
+                        </div>
+                        <div className="navbar-item">
+                            <NavLink to="/referenceBook">
                                 {({ isActive }) => (
                                     <span
                                         className={

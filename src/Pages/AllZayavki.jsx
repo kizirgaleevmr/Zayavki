@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import ExcelJS from "exceljs";
 import { fetchWithAuth, AUTH_USER_KEY } from "../utils/auth";
+import { getApiUrl } from "../utils/api";
 
 const ZAYAVKI_TABLE_COLUMNS = [
     { key: "requestId", label: "№ заявки", width: 110, minWidth: 90 },
@@ -128,7 +129,7 @@ export default function AllZayavki() {
     const [lastUpdated, setLastUpdated] = useState("");
     const [columnWidths, setColumnWidths] = useState(getInitialColumnWidths);
     const [modalSizes, setModalSizes] = useState(getInitialModalSizes);
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
+    const apiUrl = getApiUrl();
     const PAGE_SIZE = 10;
 
     const deviceTypeLabels = {
@@ -319,9 +320,7 @@ export default function AllZayavki() {
 
         return Boolean(
             item?.device_photo?.data_base64 ||
-                (fileName &&
-                    fileName !== "нет фото" &&
-                    fileName !== "нету фото"),
+            (fileName && fileName !== "нет фото" && fileName !== "нету фото"),
         );
     }
 
@@ -382,7 +381,10 @@ export default function AllZayavki() {
     }, [modalSizes]);
 
     useEffect(() => {
-        if (typeof window === "undefined" || typeof ResizeObserver === "undefined") {
+        if (
+            typeof window === "undefined" ||
+            typeof ResizeObserver === "undefined"
+        ) {
             return undefined;
         }
 
@@ -1289,7 +1291,11 @@ ${photoBlock}
                                                   ).toLocaleString("ru-RU")
                                                 : "-"}
                                         </td>
-                                        <td>{hasDevicePhoto(item) ? "Есть" : "-"}</td>
+                                        <td>
+                                            {hasDevicePhoto(item)
+                                                ? "Есть"
+                                                : "-"}
+                                        </td>
                                         <td>
                                             <div className="z-table-ellipsis">
                                                 {item.ksa_number ||
@@ -1407,7 +1413,10 @@ ${photoBlock}
                                                             : ""
                                                     }`}
                                                     onClick={(evt) =>
-                                                        openDeleteModal(item, evt)
+                                                        openDeleteModal(
+                                                            item,
+                                                            evt,
+                                                        )
                                                     }
                                                     disabled={
                                                         deletingId === item._id
@@ -1644,7 +1653,11 @@ ${photoBlock}
                     className="modal-background"
                     onClick={closeDecisionModal}
                 />
-                <div className="modal-card z-decision-modal" data-resizable-modal-key="decision" style={getModalSizeStyle("decision")}>
+                <div
+                    className="modal-card z-decision-modal"
+                    data-resizable-modal-key="decision"
+                    style={getModalSizeStyle("decision")}
+                >
                     <header className="modal-card-head">
                         <p className="modal-card-title">Решение по заявке</p>
                         <button
@@ -1765,9 +1778,15 @@ ${photoBlock}
 
             <div className={`modal ${isDeleteModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeDeleteModal} />
-                <div className="modal-card z-delete-modal" data-resizable-modal-key="delete" style={getModalSizeStyle("delete")}>
+                <div
+                    className="modal-card z-delete-modal"
+                    data-resizable-modal-key="delete"
+                    style={getModalSizeStyle("delete")}
+                >
                     <header className="modal-card-head">
-                        <p className="modal-card-title">Подтверждение удаления</p>
+                        <p className="modal-card-title">
+                            Подтверждение удаления
+                        </p>
                         <button
                             className="delete"
                             aria-label="close"
@@ -1796,7 +1815,9 @@ ${photoBlock}
                             }`}
                             type="button"
                             onClick={confirmDeleteZayavka}
-                            disabled={!deleteCandidate?._id || Boolean(deletingId)}
+                            disabled={
+                                !deleteCandidate?._id || Boolean(deletingId)
+                            }
                         >
                             Подтвердить удаление
                         </button>
@@ -1814,7 +1835,11 @@ ${photoBlock}
 
             <div className={`modal ${isDetailsModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeDetailsModal} />
-                <div className="modal-card z-details-modal" data-resizable-modal-key="details" style={getModalSizeStyle("details")}>
+                <div
+                    className="modal-card z-details-modal"
+                    data-resizable-modal-key="details"
+                    style={getModalSizeStyle("details")}
+                >
                     <header className="modal-card-head">
                         <p className="modal-card-title">Информация по заявке</p>
                         <button
@@ -1875,45 +1900,42 @@ ${photoBlock}
                                     {getUrgencyLabel(detailsZayavka)}
                                 </p>
                                 <p>
-                                    <strong>Контактное лицо:</strong>{" "}
-                                    {detailsZayavka.contact_person || "-"}
-                                </p>
-                                <p>
-                                    <strong>Кто завел:</strong>{" "}
-                                    {getCreatedByLabel(detailsZayavka)}
-                                </p>
-                                <p>
                                     <strong>Неправильность:</strong>{" "}
                                     {detailsZayavka.device_issue || "-"}
                                 </p>
                                 <p>
+                                    {" "}
                                     <strong>Решение:</strong>{" "}
                                     {detailsZayavka.decision || "-"}
-                                </p>
-                                <p>
                                     <strong>Дата решения:</strong>{" "}
                                     {detailsZayavka.decision_date
                                         ? new Date(
                                               detailsZayavka.decision_date,
                                           ).toLocaleDateString("ru-RU")
                                         : "-"}
+                                    <strong>Кто завел:</strong>{" "}
+                                    {getCreatedByLabel(detailsZayavka)}
+                                    <strong>Контактное лицо:</strong>{" "}
+                                    {detailsZayavka.contact_person || "-"}
                                 </p>
                                 <p>
-                                    <strong>Фото:</strong>
+                                    <strong>Фото:</strong>{" "}
+                                    {getDevicePhotoDataUrl(detailsZayavka) ? (
+                                        <img
+                                            src={getDevicePhotoDataUrl(
+                                                detailsZayavka,
+                                            )}
+                                            alt="Фото устройства"
+                                            style={{
+                                                width: "70%",
+                                                maxWidth: "70%",
+                                                borderRadius: "18px",
+                                            }}
+                                        />
+                                    ) : (
+                                        <p>-</p>
+                                    )}
                                 </p>
-                                                                {getDevicePhotoDataUrl(detailsZayavka) ? (
-                                    <img
-                                        src={getDevicePhotoDataUrl(detailsZayavka)}
-                                        alt="Фото устройства"
-                                        style={{
-                                            width: "100%",
-                                            maxWidth: "100%",
-                                            borderRadius: "18px",
-                                        }}
-                                    />
-                                ) : (
-                                    <p>-</p>
-                                )}
                             </>
                         ) : (
                             <p>Данные заявки не найдены.</p>
@@ -1940,7 +1962,11 @@ ${photoBlock}
 
             <div className={`modal ${isEditModalOpen ? "is-active" : ""}`}>
                 <div className="modal-background" onClick={closeEditModal} />
-                <div className="modal-card z-edit-modal" data-resizable-modal-key="edit" style={getModalSizeStyle("edit")}>
+                <div
+                    className="modal-card z-edit-modal"
+                    data-resizable-modal-key="edit"
+                    style={getModalSizeStyle("edit")}
+                >
                     <header className="modal-card-head">
                         <p className="modal-card-title">
                             Редактирование заявки
@@ -2170,17 +2196,3 @@ ${photoBlock}
         </section>
     );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

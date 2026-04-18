@@ -12,7 +12,9 @@ import AllMessage from "../Pages/AllMessage";
 import ZayavkiPage from "../Pages/Zayavki";
 import AllZayavki from "../Pages/AllZayavki";
 import ProtectedRoute from "../Pages/ProtectedRoute";
-
+import ReferenceBook from "../Pages/ReferenceBook";
+import Consultation from "../Pages/Сonsultations";
+import KnowledgeBase from "../Pages/KnowledgeBase";
 const route = createHashRouter(
     createRoutesFromElements(
         <>
@@ -26,7 +28,9 @@ const route = createHashRouter(
                         <Route path="/zayavki/new" element={<FormZayavki />} />
                         <Route path="/zayavki/all" element={<AllZayavki />} />
                     </Route>
-                    <Route path="/allMessage" element={<AllMessage />} />
+                    <Route path="/consultations" element={<Consultation />} />
+                    <Route path="/referenceBook" element={<ReferenceBook />} />
+                    <Route path="/knowledgeBase" element={<KnowledgeBase />} />
                 </Route>
             </Route>
             <Route path="/auth" element={<FormAuth />} />
@@ -38,9 +42,7 @@ const route = createHashRouter(
                             Такой страницы нет: 404!
                         </p>
                         <NavLink to="/">
-                            <button className="button is-warning">
-                                Назад
-                            </button>
+                            <button className="button is-warning">Назад</button>
                         </NavLink>
                     </section>
                 }

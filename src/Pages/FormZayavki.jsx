@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchWithAuth, getAuthHeaders, AUTH_USER_KEY } from "../utils/auth";
+import { getApiUrl } from "../utils/api";
 
 export default function FormZayavki() {
     const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function FormZayavki() {
         deviceSerial: "",
         ksa: "",
     });
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
+    const apiUrl = getApiUrl();
 
     function getDeviceTypeLabel(typeId) {
         const match = deviceTypes.find(

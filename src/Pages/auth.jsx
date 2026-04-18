@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAuthenticated, setAuthSession } from "../utils/auth";
+import { getApiUrl } from "../utils/api";
 
 export default function FormAuth() {
     const [login, setLogin] = useState("");
@@ -8,7 +9,7 @@ export default function FormAuth() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3002";
+    const apiUrl = getApiUrl();
 
     useEffect(() => {
         if (isAuthenticated()) {

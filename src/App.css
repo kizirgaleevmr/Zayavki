@@ -1515,7 +1515,7 @@ main.mt-4 {
 .z-edit-modal .modal-card-body > p:not(.help),
 .z-edit-modal .modal-card-body > .help,
 .z-delete-modal .modal-card-body > p:first-child {
-    grid-column: 1 / -1;
+    grid-column: span 2;
 }
 
 .z-edit-modal .modal-card-body > .field:nth-of-type(5) {
@@ -1534,7 +1534,7 @@ main.mt-4 {
 
 .z-details-modal .modal-card-body > p:nth-of-type(11),
 .z-details-modal .modal-card-body > p:nth-of-type(12) {
-    grid-column: 1 / -1;
+    grid-column: span 2;
 }
 
 .z-details-modal .modal-card-body > img {
