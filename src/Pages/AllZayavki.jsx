@@ -1,7 +1,12 @@
-﻿import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import ExcelJS from "exceljs";
 import { fetchWithAuth, AUTH_USER_KEY } from "../utils/auth";
 import { getApiUrl } from "../utils/api";
+import {
+    sortDeviceNames,
+    sortDeviceSerials,
+    sortDeviceTypes,
+} from "../utils/sort";
 
 const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
 const REPAIR_DECISION_OPTIONS = [
@@ -20,7 +25,6 @@ const ZAYAVKI_TABLE_COLUMNS = [
     { key: "deviceIssue", label: "Неисправность", width: 320, minWidth: 220 },
     { key: "actions", label: "Действия", width: 170, minWidth: 150 },
 ];
-
 const INITIAL_ZAYAVKI_COLUMN_WIDTHS = ZAYAVKI_TABLE_COLUMNS.reduce(
     (acc, column) => ({
         ...acc,
@@ -93,11 +97,12 @@ export default function AllZayavki() {
     const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
     const [error, setError] = useState("");
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-    const [detailsZayavka, setDetailsZayavka] = useState(null);
+    const [detailsZayavkaId, setDetailsZayavkaId] = useState("");
+    const [detailsZayavkaData, setDetailsZayavkaData] = useState(null);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
     const [detailsError, setDetailsError] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedZayavka, setSelectedZayavka] = useState(null);
+    const [selectedZayavkaId, setSelectedZayavkaId] = useState("");
     const [decisionText, setDecisionText] = useState("");
     const [decisionDate, setDecisionDate] = useState("");
     const [decisionKind, setDecisionKind] = useState("");
@@ -119,7 +124,7 @@ export default function AllZayavki() {
     const [isSavingDecision, setIsSavingDecision] = useState(false);
     const [decisionError, setDecisionError] = useState("");
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editingZayavka, setEditingZayavka] = useState(null);
+    const [editingZayavkaId, setEditingZayavkaId] = useState("");
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [editError, setEditError] = useState("");
     const [editForm, setEditForm] = useState({
@@ -141,7 +146,7 @@ export default function AllZayavki() {
         useState("");
     const [deletingId, setDeletingId] = useState("");
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [deleteCandidate, setDeleteCandidate] = useState(null);
+    const [deleteCandidateId, setDeleteCandidateId] = useState("");
     const [isExporting, setIsExporting] = useState(false);
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -187,6 +192,63 @@ export default function AllZayavki() {
             .trim()
             .toLowerCase();
     }
+
+    const selectedZayavka = useMemo(() => {
+        if (!selectedZayavkaId) return null;
+
+        return (
+            zayavki.find(
+                (item) =>
+                    String(item?._id || "").trim() ===
+                    String(selectedZayavkaId || "").trim(),
+            ) || null
+        );
+    }, [selectedZayavkaId, zayavki]);
+
+    const editingZayavka = useMemo(() => {
+        if (!editingZayavkaId) return null;
+
+        return (
+            zayavki.find(
+                (item) =>
+                    String(item?._id || "").trim() ===
+                    String(editingZayavkaId || "").trim(),
+            ) || null
+        );
+    }, [editingZayavkaId, zayavki]);
+
+    const deleteCandidate = useMemo(() => {
+        if (!deleteCandidateId) return null;
+
+        return (
+            zayavki.find(
+                (item) =>
+                    String(item?._id || "").trim() ===
+                    String(deleteCandidateId || "").trim(),
+            ) || null
+        );
+    }, [deleteCandidateId, zayavki]);
+
+    const detailsBaseZayavka = useMemo(() => {
+        if (!detailsZayavkaId) return null;
+
+        return (
+            zayavki.find(
+                (item) =>
+                    String(item?._id || "").trim() ===
+                    String(detailsZayavkaId || "").trim(),
+            ) || null
+        );
+    }, [detailsZayavkaId, zayavki]);
+
+    const detailsZayavka = useMemo(() => {
+        if (!detailsBaseZayavka && !detailsZayavkaData) return null;
+
+        return {
+            ...(detailsZayavkaData || {}),
+            ...(detailsBaseZayavka || {}),
+        };
+    }, [detailsBaseZayavka, detailsZayavkaData]);
 
     function getEditDeviceTypeIdByValue(value) {
         const rawValue = String(value || "").trim();
@@ -531,7 +593,7 @@ export default function AllZayavki() {
     }
 
     function openDecisionModal(item) {
-        setSelectedZayavka(item);
+        setSelectedZayavkaId(String(item?._id || "").trim());
         const nextDecisionKind =
             item.decision_kind ||
             (item.request_basis === "Дооснащение"
@@ -568,7 +630,7 @@ export default function AllZayavki() {
 
     function closeDecisionModal() {
         setIsModalOpen(false);
-        setSelectedZayavka(null);
+        setSelectedZayavkaId("");
         setDecisionText("");
         setDecisionKind("");
         setDecisionDate("");
@@ -645,7 +707,7 @@ export default function AllZayavki() {
         evt.stopPropagation();
         setDetailsError("");
         setIsDetailsLoading(true);
-        setDetailsZayavka(null);
+        setDetailsZayavkaData(null);
         setIsDetailsModalOpen(true);
 
         try {
@@ -661,7 +723,7 @@ export default function AllZayavki() {
                     result.message || "Не удалось получить данные заявки",
                 );
             }
-            setDetailsZayavka(result);
+                setDetailsZayavkaData(result);
         } catch (err) {
             setDetailsError(err.message || "Ошибка загрузки деталей заявки");
         } finally {
@@ -671,14 +733,14 @@ export default function AllZayavki() {
 
     function closeDetailsModal() {
         setIsDetailsModalOpen(false);
-        setDetailsZayavka(null);
+        setDetailsZayavkaData(null);
         setIsDetailsLoading(false);
         setDetailsError("");
     }
 
     function openEditModal(item, evt) {
         evt.stopPropagation();
-        setEditingZayavka(item);
+        setEditingZayavkaId(String(item?._id || "").trim());
         setEditForm({
             device_type: item.device_type || "",
             device_name: item.device_name || "",
@@ -699,7 +761,7 @@ export default function AllZayavki() {
 
     function closeEditModal() {
         setIsEditModalOpen(false);
-        setEditingZayavka(null);
+        setEditingZayavkaId("");
         setEditError("");
         setEditSelectedDeviceTypeId("");
         setEditSelectedDeviceNameId("");
@@ -774,7 +836,11 @@ export default function AllZayavki() {
 
                 if (response.ok) {
                     const typeData = await response.json();
-                    setEditDeviceTypes(Array.isArray(typeData) ? typeData : []);
+                    setEditDeviceTypes(
+                        Array.isArray(typeData)
+                            ? sortDeviceTypes(typeData)
+                            : [],
+                    );
                 } else {
                     setEditDeviceTypes([]);
                 }
@@ -828,7 +894,11 @@ export default function AllZayavki() {
 
                 if (response.ok) {
                     const nameData = await response.json();
-                    setEditDeviceNames(Array.isArray(nameData) ? nameData : []);
+                    setEditDeviceNames(
+                        Array.isArray(nameData)
+                            ? sortDeviceNames(nameData)
+                            : [],
+                    );
                 } else {
                     setEditDeviceNames([]);
                 }
@@ -881,7 +951,9 @@ export default function AllZayavki() {
                 if (response.ok) {
                     const serialData = await response.json();
                     setEditDeviceSerials(
-                        Array.isArray(serialData) ? serialData : [],
+                        Array.isArray(serialData)
+                            ? sortDeviceSerials(serialData)
+                            : [],
                     );
                 } else {
                     setEditDeviceSerials([]);
@@ -909,7 +981,9 @@ export default function AllZayavki() {
                 if (response.ok) {
                     const typeData = await response.json();
                     setReplacementDeviceTypes(
-                        Array.isArray(typeData) ? typeData : [],
+                        Array.isArray(typeData)
+                            ? sortDeviceTypes(typeData)
+                            : [],
                     );
                 } else {
                     setReplacementDeviceTypes([]);
@@ -973,7 +1047,9 @@ export default function AllZayavki() {
                 if (response.ok) {
                     const nameData = await response.json();
                     setReplacementDeviceNames(
-                        Array.isArray(nameData) ? nameData : [],
+                        Array.isArray(nameData)
+                            ? sortDeviceNames(nameData)
+                            : [],
                     );
                 } else {
                     setReplacementDeviceNames([]);
@@ -1035,7 +1111,9 @@ export default function AllZayavki() {
                 if (response.ok) {
                     const serialData = await response.json();
                     setReplacementDeviceSerials(
-                        Array.isArray(serialData) ? serialData : [],
+                        Array.isArray(serialData)
+                            ? sortDeviceSerials(serialData)
+                            : [],
                     );
                 } else {
                     setReplacementDeviceSerials([]);
@@ -1222,13 +1300,6 @@ ${photoBlock}
                 ),
             );
 
-            if (detailsZayavka?._id === editingZayavka._id) {
-                setDetailsZayavka((prev) => ({ ...prev, ...result.zayavka }));
-            }
-            if (selectedZayavka?._id === editingZayavka._id) {
-                setSelectedZayavka((prev) => ({ ...prev, ...result.zayavka }));
-            }
-
             closeEditModal();
         } catch (err) {
             setEditError(err.message || "Ошибка обновления заявки");
@@ -1241,14 +1312,14 @@ ${photoBlock}
         evt.stopPropagation();
         if (!item?._id) return;
 
-        setDeleteCandidate(item);
+        setDeleteCandidateId(String(item?._id || "").trim());
         setIsDeleteModalOpen(true);
     }
 
     function closeDeleteModal() {
         if (deletingId) return;
         setIsDeleteModalOpen(false);
-        setDeleteCandidate(null);
+        setDeleteCandidateId("");
     }
 
     async function confirmDeleteZayavka() {
@@ -1289,8 +1360,8 @@ ${photoBlock}
             if (editingZayavka?._id === deleteCandidate._id) {
                 closeEditModal();
             }
-            setIsDeleteModalOpen(false);
-            setDeleteCandidate(null);
+            closeDeleteModal();
+
         } catch (err) {
             setError(err.message || "Ошибка удаления заявки");
         } finally {
@@ -2852,3 +2923,11 @@ ${photoBlock}
 }
 
 // FIXME: - переделать модалку решения 1 ремонт 2 замена 3 консульатция и в зависимости от выбора показывать либо поле для ввода решения, либо поле для выбора консультации, либо показать поля для выбора устройства для замены (для ремонта) а также если выбрано ремонт сделать страницу движение техники и добавлять туда в таблицу данные
+
+
+
+
+
+
+
+

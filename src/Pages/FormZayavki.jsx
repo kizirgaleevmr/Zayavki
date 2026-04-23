@@ -2,9 +2,15 @@
 import { useNavigate } from "react-router-dom";
 import { fetchWithAuth, getAuthHeaders, AUTH_USER_KEY } from "../utils/auth";
 import { getApiUrl } from "../utils/api";
+import {
+    sortDeviceNames,
+    sortDeviceSerials,
+    sortDeviceTypes,
+    sortKsa,
+    sortRegions,
+} from "../utils/sort";
 
 const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
-
 export default function FormZayavki() {
     const navigate = useNavigate();
     const [reg, setReg] = useState([]);
@@ -212,7 +218,11 @@ export default function FormZayavki() {
 
                 if (response.ok) {
                     const typeData = await response.json();
-                    setDeviceTypes(Array.isArray(typeData) ? typeData : []);
+                    setDeviceTypes(
+                        Array.isArray(typeData)
+                            ? sortDeviceTypes(typeData)
+                            : [],
+                    );
                 } else {
                     setDeviceTypes([]);
                 }
@@ -233,7 +243,7 @@ export default function FormZayavki() {
 
                 if (response.ok) {
                     const region = await response.json();
-                    setReg(region);
+                    setReg(Array.isArray(region) ? sortRegions(region) : []);
                 }
             } catch (error) {
                 console.error("Error details:", error);
@@ -268,7 +278,11 @@ export default function FormZayavki() {
 
                 if (response.ok) {
                     const nameData = await response.json();
-                    setDeviceNames(Array.isArray(nameData) ? nameData : []);
+                    setDeviceNames(
+                        Array.isArray(nameData)
+                            ? sortDeviceNames(nameData)
+                            : [],
+                    );
                 } else {
                     setDeviceNames([]);
                 }
@@ -303,7 +317,9 @@ export default function FormZayavki() {
                 if (response.ok) {
                     const serialData = await response.json();
                     setDeviceSerials(
-                        Array.isArray(serialData) ? serialData : [],
+                        Array.isArray(serialData)
+                            ? sortDeviceSerials(serialData)
+                            : [],
                     );
                 } else {
                     setDeviceSerials([]);
@@ -344,7 +360,7 @@ export default function FormZayavki() {
 
                 if (response.ok) {
                     const ksaData = await response.json();
-                    setKsa(ksaData);
+                    setKsa(Array.isArray(ksaData) ? sortKsa(ksaData) : []);
                     console.log(
                         "[FormZayavki] /ksa response count:",
                         ksaData.length,
@@ -691,3 +707,6 @@ export default function FormZayavki() {
 //TODO:- [x]  добавить при добавление решения в заявки информацию о том кто добавил решение (фио и должность) и дату добавления решения
 //FIXME: -  добавить при решение заявки информацию для отгрузки оборудования и информацию кто отгрузил оборудования куда отгрузил и дату отгрузки
 //FIXME: - перенсти иконки редактирования удаления и просмотр в модалку по клику по строке
+
+
+

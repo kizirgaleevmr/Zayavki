@@ -284,7 +284,7 @@ export default function MoveTs() {
     const [items, setItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
-    const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedItemId, setSelectedItemId] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState(createEditForm());
@@ -385,8 +385,45 @@ export default function MoveTs() {
         actModalPreview,
     ]);
 
+    const selectedItem = useMemo(() => {
+        if (!selectedItemId) return null;
+
+        return (
+            items.find(
+                (item) => normalizeValue(item?._id) === normalizeValue(selectedItemId),
+            ) || null
+        );
+    }, [items, selectedItemId]);
+
+    useEffect(() => {
+        if (!isModalOpen || !selectedItem) return;
+
+        if (!isEditing) {
+            setEditForm(createEditForm(selectedItem));
+        }
+
+        if (!isActModalOpen) {
+            setActForm(createActForm(selectedItem));
+        }
+    }, [isActModalOpen, isEditing, isModalOpen, selectedItem]);
+
+    useEffect(() => {
+        if (selectedItemId && !selectedItem) {
+            setIsModalOpen(false);
+            setIsActModalOpen(false);
+            setIsEditing(false);
+            setSelectedItemId("");
+            setEditForm(createEditForm());
+            setActForm(createActForm());
+            setModalError("");
+            setActModalError("");
+            setActModalPreview("");
+            setIsActModalPreviewLoading(false);
+        }
+    }, [selectedItem, selectedItemId]);
+
     function openModal(item) {
-        setSelectedItem(item);
+        setSelectedItemId(item?._id || "");
         setEditForm(createEditForm(item));
         setModalError("");
         setIsEditing(false);
@@ -400,7 +437,7 @@ export default function MoveTs() {
 
     function closeModal() {
         setIsModalOpen(false);
-        setSelectedItem(null);
+        setSelectedItemId("");
         setIsEditing(false);
         setEditForm(createEditForm());
         setModalError("");
@@ -595,7 +632,6 @@ export default function MoveTs() {
                     item._id === responseBody._id ? responseBody : item,
                 ),
             );
-            setSelectedItem(responseBody);
             setEditForm(createEditForm(responseBody));
             setIsEditing(false);
         } catch (saveError) {
@@ -745,7 +781,6 @@ export default function MoveTs() {
             );
 
             setItems(nextItems);
-            setSelectedItem(responseBody);
             setEditForm(createEditForm(responseBody));
             setActForm(createActForm(responseBody));
             setIsActModalOpen(false);
