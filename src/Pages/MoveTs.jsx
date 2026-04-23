@@ -8,6 +8,10 @@ const EXPENSE_ACT_TEMPLATE_URL = new URL(
     "../shablonAkty/Shablon_R.docx",
     import.meta.url,
 ).href;
+const INCOME_ACT_TEMPLATE_URL = new URL(
+    "../shablonAkty/shablon_P.docx",
+    import.meta.url,
+).href;
 
 function normalizeValue(value) {
     return String(value || "").trim();
@@ -134,6 +138,20 @@ function formatDateShort(value) {
     return `${day}.${month}.${year}`;
 }
 
+function formatDateLong(value) {
+    if (!value) return "";
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return "";
+    }
+
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const year = String(parsed.getFullYear());
+    return `${day}.${month}.${year}`;
+}
+
 function escapeXml(value) {
     return String(value || "")
         .replaceAll("&", "&amp;")
@@ -224,6 +242,59 @@ function buildExpenseActRowXml(item, index, requestMeta = {}) {
     `;
 }
 
+function buildIncomeActItemXml(item, requestMeta = {}) {
+    const parts = [
+        item?.device_name || "-",
+        item?.device_serial || "-",
+        item?.from_location || "-",
+        item?.to_location || "-",
+        requestMeta?.request_basis || "-",
+        item?.request_number || "-",
+        requestMeta?.created_by || "-",
+    ];
+
+    return `
+        <w:p>
+            <w:pPr>
+                <w:pStyle w:val="ListParagraph"/>
+                <w:numPr>
+                    <w:ilvl w:val="0"/>
+                    <w:numId w:val="1"/>
+                </w:numPr>
+                <w:tabs>
+                    <w:tab w:pos="1030" w:val="left" w:leader="none"/>
+                    <w:tab w:pos="5025" w:val="left" w:leader="none"/>
+                    <w:tab w:pos="6959" w:val="left" w:leader="none"/>
+                    <w:tab w:pos="9000" w:val="left" w:leader="none"/>
+                    <w:tab w:pos="10365" w:val="left" w:leader="none"/>
+                    <w:tab w:pos="12525" w:val="left" w:leader="none"/>
+                </w:tabs>
+                <w:spacing w:line="240" w:lineRule="auto" w:before="185" w:after="0"/>
+                <w:ind w:left="1030" w:right="0" w:hanging="253"/>
+                <w:jc w:val="left"/>
+                <w:rPr><w:sz w:val="22"/></w:rPr>
+            </w:pPr>
+            ${parts
+                .map(
+                    (value, index) => `
+                        <w:r>
+                            <w:rPr>
+                                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
+                                <w:color w:val="${
+                                    index === 0 ? "3F3F3F" : "0F243F"
+                                }"/>
+                                <w:sz w:val="22"/>
+                            </w:rPr>
+                            <w:t>${escapeXml(value)}</w:t>
+                        </w:r>
+                        ${index < parts.length - 1 ? "<w:r><w:tab/></w:r>" : ""}
+                    `,
+                )
+                .join("")}
+        </w:p>
+    `;
+}
+
 function parseWordFragment(xml, document) {
     const parser = new DOMParser();
     const parsed = parser.parseFromString(
@@ -302,6 +373,81 @@ function buildExpenseActDocumentXml(templateXml, payload) {
         table.insertBefore(node, sampleRow);
     });
     table.removeChild(sampleRow);
+
+    return new XMLSerializer().serializeToString(xmlDocument);
+}
+
+function buildIncomeActDocumentXml(templateXml, payload) {
+    const { actNumber, moveDate, items, requestMetaByNumber } = payload;
+    const parser = new DOMParser();
+    const xmlDocument = parser.parseFromString(templateXml, "application/xml");
+    const paragraphs = Array.from(xmlDocument.getElementsByTagNameNS(WORD_NS, "p"));
+
+    const titleParagraph = paragraphs.find((paragraph) =>
+        paragraph.textContent.includes("АКТ"),
+    );
+    const dateParagraph = paragraphs.find((paragraph) =>
+        paragraph.textContent.trim().startsWith("от"),
+    );
+    const firstListParagraph = paragraphs.find(
+        (paragraph) =>
+            paragraph.getElementsByTagNameNS(WORD_NS, "numPr").length > 0,
+    );
+    const footerParagraph = paragraphs.find(
+        (paragraph) =>
+            paragraph.textContent.trim().startsWith("Передал"),
+    );
+
+    if (!titleParagraph || !dateParagraph || !firstListParagraph || !footerParagraph) {
+        throw new Error("Не найдены ключевые поля в шаблоне Word");
+    }
+
+    const titleReplacement = parseWordFragment(
+        buildWordParagraphXml(`АКТ № ${actNumber}`, {
+            bold: true,
+            size: 36,
+            left: "5400",
+            before: "30",
+        }),
+        xmlDocument,
+    )[0];
+
+    const dateReplacement = parseWordFragment(
+        buildWordParagraphXml(`от\t${formatDateLong(moveDate)}`, {
+            bold: true,
+            size: 36,
+            left: "278",
+            before: "27",
+            xmlSpace: true,
+        }),
+        xmlDocument,
+    )[0];
+
+    titleParagraph.parentNode.replaceChild(titleReplacement, titleParagraph);
+    dateParagraph.parentNode.replaceChild(dateReplacement, dateParagraph);
+
+    const listParagraphs = paragraphs.filter(
+        (paragraph) =>
+            paragraph.getElementsByTagNameNS(WORD_NS, "numPr").length > 0,
+    );
+
+    const generatedItemsXml = items
+        .map((item) =>
+            buildIncomeActItemXml(
+                item,
+                requestMetaByNumber.get(normalizeValue(item?.request_number)) || {},
+            ),
+        )
+        .join("");
+
+    const replacementNodes = parseWordFragment(generatedItemsXml, xmlDocument);
+    replacementNodes.forEach((node) => {
+        footerParagraph.parentNode.insertBefore(node, footerParagraph);
+    });
+
+    listParagraphs.forEach((paragraph) => {
+        paragraph.parentNode.removeChild(paragraph);
+    });
 
     return new XMLSerializer().serializeToString(xmlDocument);
 }
@@ -941,7 +1087,7 @@ export default function MoveTs() {
         printWindow.print();
     }
 
-    async function downloadExpenseActDocx(item, sourceItems) {
+    async function downloadActDocx(item, sourceItems) {
         const normalizedActNumber = normalizeValue(item?.act_number);
         const actItems = normalizedActNumber
             ? sourceItems.filter(
@@ -949,9 +1095,15 @@ export default function MoveTs() {
                       normalizeValue(sourceItem.act_number) === normalizedActNumber,
               )
             : [item];
+        const actType = getResolvedActType(item);
+        const isIncomeAct = actType === "income";
 
         const [templateBuffer, requestMetaByNumber] = await Promise.all([
-            fetch(EXPENSE_ACT_TEMPLATE_URL).then(async (response) => {
+            fetch(
+                isIncomeAct
+                    ? INCOME_ACT_TEMPLATE_URL
+                    : EXPENSE_ACT_TEMPLATE_URL,
+            ).then(async (response) => {
                 if (!response.ok) {
                     throw new Error("Не удалось загрузить шаблон Word");
                 }
@@ -967,14 +1119,17 @@ export default function MoveTs() {
             throw new Error("В шаблоне Word отсутствует document.xml");
         }
 
-        const nextDocumentXml = buildExpenseActDocumentXml(
+        const payload = {
+            actNumber: item?.act_number || "",
+            moveDate: item?.move_date,
+            items: actItems,
+            requestMetaByNumber,
+        };
+        const nextDocumentXml = (
+            isIncomeAct ? buildIncomeActDocumentXml : buildExpenseActDocumentXml
+        )(
             documentFile.asText(),
-            {
-                actNumber: item?.act_number || "",
-                moveDate: item?.move_date,
-                items: actItems,
-                requestMetaByNumber,
-            },
+            payload,
         );
 
         zip.file("word/document.xml", nextDocumentXml);
@@ -986,7 +1141,9 @@ export default function MoveTs() {
         });
 
         const safeActNumber = normalizeValue(item?.act_number).replaceAll("/", "-");
-        const fileName = `Akt_Raskhoda_${safeActNumber || "bez-nomera"}.docx`;
+        const fileName = `Akt_${
+            isIncomeAct ? "Prikhoda" : "Raskhoda"
+        }_${safeActNumber || "bez-nomera"}.docx`;
         const downloadUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
 
@@ -1069,11 +1226,7 @@ export default function MoveTs() {
             setIsActModalOpen(false);
 
             if (shouldPrint) {
-                if (getResolvedActType(responseBody) === "expense") {
-                    await downloadExpenseActDocx(responseBody, nextItems);
-                } else {
-                    printActForItem(responseBody, nextItems);
-                }
+                await downloadActDocx(responseBody, nextItems);
             }
         } catch (saveError) {
             setActModalError(saveError.message || "Ошибка формирования акта");
@@ -1679,7 +1832,7 @@ export default function MoveTs() {
                                 onClick={() => handleSaveAct(true)}
                                 type="button"
                             >
-                                Сохранить и печатать
+                                Сохранить и скачать Word
                             </button>
                         </div>
                         <button
