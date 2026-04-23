@@ -134,6 +134,24 @@ const deviceItemScheme = new Schema(
     { collection: "oborudovanie" },
 );
 
+const moveTsScheme = new Schema(
+    {
+        request_number: { type: String, required: true },
+        act_number: { type: String, default: "" },
+        move_date: { type: Date, default: Date.now },
+        status: { type: String, default: "на отправку" },
+        delivery_method: { type: String, default: "" },
+        device_type: { type: String, default: "" },
+        device_name: { type: String, default: "" },
+        device_serial: { type: String, default: "" },
+        inv_number: { type: String, default: "" },
+        from_location: { type: String, default: "СЦ БТИ" },
+        to_location: { type: String, default: "" },
+        quantity: { type: Number, default: 1 },
+    },
+    { collection: "move_ts", timestamps: true },
+);
+
 const zayavkaScheme = new Schema(
     {
         request_number: { type: String, required: true, unique: true },
@@ -185,6 +203,7 @@ const DeviceItem = mongoose.model(
     deviceItemScheme,
     "oborudovanie",
 );
+const MoveTs = mongoose.model("move_ts", moveTsScheme, "move_ts");
 const Zayavka = mongoose.model("zayavka", zayavkaScheme);
 
 function formatRequestNumber(date, sequenceNumber) {
@@ -323,6 +342,31 @@ async function fetchDeviceSerialsSafe(nameId) {
     return [];
 }
 
+async function findDeviceItemBySerialSafe(serialNumber) {
+    const normalizedSerial = String(serialNumber || "").trim();
+    if (!normalizedSerial) return null;
+
+    const variants = Array.from(new Set([normalizedSerial]));
+    const fromModel = await DeviceItem.findOne({
+        serial_number: { $in: variants },
+    }).lean();
+    if (fromModel) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["oborudovanie", "equipment"];
+
+    for (const collectionName of candidates) {
+        const item = await db.collection(collectionName).findOne({
+            serial_number: { $in: variants },
+        });
+        if (item) {
+            return item;
+        }
+    }
+
+    return null;
+}
+
 async function fetchZayavkiSafe() {
     const fromModel = await Zayavka.find({}).sort({ createdAt: -1 }).lean();
     if (fromModel.length > 0) return fromModel;
@@ -368,6 +412,55 @@ function normalizeRequestBasis(value) {
     );
 
     return match || "";
+}
+
+async function getKsaNumberSafe(ksaId, fallbackNumber = "") {
+    const normalizedKsaId = String(ksaId || "").trim();
+    if (!normalizedKsaId) {
+        return String(fallbackNumber || "").trim();
+    }
+
+    const ksaList = await fetchKsaSafe({ id_ksa: normalizedKsaId });
+    const firstKsa = Array.isArray(ksaList) ? ksaList[0] : null;
+
+    return (
+        String(firstKsa?.nomer_ksa || "").trim() ||
+        String(fallbackNumber || "").trim()
+    );
+}
+
+async function createMoveTsForZayavka({
+    requestNumber,
+    ksaId,
+    ksaNumber,
+    deviceType,
+    deviceName,
+    deviceSerial,
+    requestBasis,
+}) {
+    if (normalizeRequestBasis(requestBasis) !== "Дооснащение") {
+        return null;
+    }
+
+    const [deviceItem, destinationKsaNumber] = await Promise.all([
+        findDeviceItemBySerialSafe(deviceSerial),
+        getKsaNumberSafe(ksaId, ksaNumber),
+    ]);
+
+    return MoveTs.create({
+        request_number: String(requestNumber || "").trim(),
+        act_number: "",
+        move_date: new Date(),
+        status: "на отправку",
+        delivery_method: "",
+        device_type: String(deviceType || "").trim(),
+        device_name: String(deviceName || "").trim(),
+        device_serial: String(deviceSerial || "").trim(),
+        inv_number: String(deviceItem?.inv_number || "").trim(),
+        from_location: "СЦ БТИ",
+        to_location: destinationKsaNumber,
+        quantity: 1,
+    });
 }
 
 function getCreatedByValue(item) {
@@ -631,11 +724,13 @@ app.get("/device-serials", authMiddleware, async (req, res) => {
 });
 
 app.post("/zayavki", authMiddleware, async (req, res) => {
+    let created = null;
     try {
         const {
             region_id,
             region_code,
             ksa_id,
+            ksa_number,
             ksa_address,
             device_type,
             device_name,
@@ -667,7 +762,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
         const totalZayavki = await getZayavkiCountSafe();
         const requestNumber = formatRequestNumber(now, totalZayavki + 1);
 
-        const created = await Zayavka.create({
+        created = await Zayavka.create({
             request_number: requestNumber,
             region_id,
             region_code: region_code || "",
@@ -684,6 +779,16 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             created_by: created_by || "-",
         });
 
+        await createMoveTsForZayavka({
+            requestNumber,
+            ksaId: ksa_id,
+            ksaNumber: ksa_number,
+            deviceType: device_type,
+            deviceName: device_name,
+            deviceSerial: device_serial,
+            requestBasis: request_basis,
+        });
+
         return res.status(201).json({
             message: "Заявка сохранена",
             id: created._id,
@@ -691,6 +796,15 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
         });
     } catch (error) {
         console.error("[POST /zayavki] error:", error);
+
+        if (created?._id) {
+            try {
+                await deleteZayavkaSafe(created._id);
+            } catch (cleanupError) {
+                console.error("[POST /zayavki] rollback error:", cleanupError);
+            }
+        }
+
         return res.status(500).json({
             message: "Ошибка сохранения заявки",
         });

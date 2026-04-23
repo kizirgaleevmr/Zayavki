@@ -141,6 +141,7 @@ export default function FormZayavki() {
                 region_id: selectedRegion.id,
                 region_code: selectedRegion.code,
                 ksa_id: selectedKsa,
+                ksa_number: selectedKsaItem?.nomer_ksa || "",
                 ksa_address:
                     selectedKsaItem?.ksa_adress ||
                     selectedKsaItem?.ksa_address ||
