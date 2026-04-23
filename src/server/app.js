@@ -254,6 +254,19 @@ async function getZayavkiCountSafe() {
     return 0;
 }
 
+async function getNextRequestNumber(date) {
+    const valueDate = date instanceof Date ? date : new Date(date);
+    let sequenceNumber = (await getZayavkiCountSafe()) + 1;
+
+    // Keep the requested count-based numbering, but skip values that already
+    // exist so creating a new request does not fail after deletions.
+    while (await Zayavka.exists({ request_number: formatRequestNumber(valueDate, sequenceNumber) })) {
+        sequenceNumber += 1;
+    }
+
+    return formatRequestNumber(valueDate, sequenceNumber);
+}
+
 async function fetchRegionsSafe() {
     const regions = await Region.find({});
     if (regions.length > 0) return regions;
@@ -1324,8 +1337,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
         }
 
         const now = new Date();
-        const totalZayavki = await getZayavkiCountSafe();
-        const requestNumber = formatRequestNumber(now, totalZayavki + 1);
+        const requestNumber = await getNextRequestNumber(now);
         const normalizedRequestBasis = normalizeRequestBasis(request_basis);
 
         created = await Zayavka.create({

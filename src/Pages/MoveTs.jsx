@@ -1,6 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import PizZip from "pizzip";
 import { fetchWithAuth } from "../utils/auth";
 import { getApiUrl } from "../utils/api";
+
+const WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+const EXPENSE_ACT_TEMPLATE_URL = new URL(
+    "../shablonAkty/Shablon_R.docx",
+    import.meta.url,
+).href;
 
 function normalizeValue(value) {
     return String(value || "").trim();
@@ -111,6 +118,192 @@ function createActForm(item = null) {
         existing_act_number: actNumber,
         move_date: formatDateTimeLocalValue(item?.move_date || new Date()),
     };
+}
+
+function formatDateShort(value) {
+    if (!value) return "";
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return "";
+    }
+
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const year = String(parsed.getFullYear()).slice(-2);
+    return `${day}.${month}.${year}`;
+}
+
+function escapeXml(value) {
+    return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&apos;");
+}
+
+function buildWordParagraphXml(text, options = {}) {
+    const {
+        bold = false,
+        size = 28,
+        underline = false,
+        align = "",
+        left = "",
+        hanging = "",
+        before = "",
+        xmlSpace = false,
+    } = options;
+
+    const paragraphProps = [];
+    if (align) {
+        paragraphProps.push(`<w:jc w:val="${align}"/>`);
+    }
+    if (left || hanging) {
+        const attrs = [];
+        if (left) attrs.push(`w:left="${left}"`);
+        if (hanging) attrs.push(`w:hanging="${hanging}"`);
+        paragraphProps.push(`<w:ind ${attrs.join(" ")}/>`);
+    }
+    if (before) {
+        paragraphProps.push(`<w:spacing w:before="${before}"/>`);
+    }
+
+    const runProps = [
+        `<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>`,
+        bold ? "<w:b/>" : "",
+        underline ? '<w:u w:val="single"/>' : "",
+        `<w:sz w:val="${size}"/>`,
+    ]
+        .filter(Boolean)
+        .join("");
+
+    return `
+        <w:p>
+            ${
+                paragraphProps.length > 0
+                    ? `<w:pPr>${paragraphProps.join("")}</w:pPr>`
+                    : ""
+            }
+            <w:r>
+                <w:rPr>${runProps}</w:rPr>
+                <w:t${xmlSpace ? ' xml:space="preserve"' : ""}>${escapeXml(text)}</w:t>
+            </w:r>
+        </w:p>
+    `;
+}
+
+function buildWordCellXml(text, width) {
+    return `
+        <w:tc>
+            <w:tcPr><w:tcW w:w="${width}" w:type="dxa"/></w:tcPr>
+            ${buildWordParagraphXml(text, { size: 28 })}
+        </w:tc>
+    `;
+}
+
+function buildExpenseActRowXml(item, index, requestMeta = {}) {
+    const values = [
+        String(index + 1),
+        item?.device_name || "-",
+        item?.device_serial || "-",
+        item?.from_location || "-",
+        item?.to_location || "-",
+        requestMeta?.request_basis || "-",
+        item?.request_number || "-",
+        requestMeta?.created_by || "-",
+    ];
+    const widths = ["1101", "2887", "1994", "1994", "1995", "1995", "1995", "1995"];
+
+    return `
+        <w:tr>
+            ${values
+                .map((value, cellIndex) => buildWordCellXml(value, widths[cellIndex]))
+                .join("")}
+        </w:tr>
+    `;
+}
+
+function parseWordFragment(xml, document) {
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(
+        `<root xmlns:w="${WORD_NS}">${xml}</root>`,
+        "application/xml",
+    );
+
+    return Array.from(parsed.documentElement.childNodes).map((node) =>
+        document.importNode(node, true),
+    );
+}
+
+function buildExpenseActDocumentXml(templateXml, payload) {
+    const { actNumber, moveDate, items, requestMetaByNumber } = payload;
+    const parser = new DOMParser();
+    const xmlDocument = parser.parseFromString(templateXml, "application/xml");
+    const paragraphs = Array.from(xmlDocument.getElementsByTagNameNS(WORD_NS, "p"));
+    const table = xmlDocument.getElementsByTagNameNS(WORD_NS, "tbl")[0];
+
+    if (!table) {
+        throw new Error("Не найдена таблица в шаблоне Word");
+    }
+
+    const titleParagraph = paragraphs.find((paragraph) =>
+        paragraph.textContent.includes("АКТ"),
+    );
+    const dateParagraph = paragraphs.find((paragraph) =>
+        paragraph.textContent.trim().startsWith("от"),
+    );
+
+    if (!titleParagraph || !dateParagraph) {
+        throw new Error("Не найдены ключевые поля в шаблоне Word");
+    }
+
+    const titleReplacement = parseWordFragment(
+        buildWordParagraphXml(`АКТ № ${actNumber}`, {
+            bold: true,
+            size: 36,
+            left: "5387",
+            hanging: "347",
+            before: "30",
+        }),
+        xmlDocument,
+    )[0];
+
+    const dateReplacement = parseWordFragment(
+        buildWordParagraphXml(`от\t${formatDateShort(moveDate)}`, {
+            bold: true,
+            size: 36,
+            left: "278",
+            before: "27",
+            xmlSpace: true,
+        }),
+        xmlDocument,
+    )[0];
+
+    titleParagraph.parentNode.replaceChild(titleReplacement, titleParagraph);
+    dateParagraph.parentNode.replaceChild(dateReplacement, dateParagraph);
+
+    const rows = Array.from(table.getElementsByTagNameNS(WORD_NS, "tr"));
+    if (rows.length < 2) {
+        throw new Error("Не найдена строка-образец в шаблоне Word");
+    }
+
+    const sampleRow = rows[1];
+    const generatedRows = items.map((item, index) =>
+        buildExpenseActRowXml(
+            item,
+            index,
+            requestMetaByNumber.get(normalizeValue(item?.request_number)) || {},
+        ),
+    );
+
+    const replacementNodes = parseWordFragment(generatedRows.join(""), xmlDocument);
+    replacementNodes.forEach((node) => {
+        table.insertBefore(node, sampleRow);
+    });
+    table.removeChild(sampleRow);
+
+    return new XMLSerializer().serializeToString(xmlDocument);
 }
 
 function escapeHtml(value) {
@@ -281,6 +474,7 @@ function compareActNumbers(left, right) {
 
 export default function MoveTs() {
     const apiUrl = getApiUrl();
+    const requestMetaByNumberRef = useRef(new Map());
     const [items, setItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
@@ -329,6 +523,38 @@ export default function MoveTs() {
         } finally {
             setIsLoading(false);
         }
+    }, [apiUrl]);
+
+    const ensureRequestMetaLoaded = useCallback(async () => {
+        if (requestMetaByNumberRef.current.size > 0) {
+            return requestMetaByNumberRef.current;
+        }
+
+        const response = await fetchWithAuth(`${apiUrl}/zayavki`, {
+            method: "GET",
+        });
+
+        const responseBody = await response.json().catch(() => null);
+        if (!response.ok) {
+            throw new Error(
+                responseBody?.message ||
+                    "Не удалось получить данные заявок для Word-шаблона",
+            );
+        }
+
+        const nextMap = new Map();
+        (Array.isArray(responseBody) ? responseBody : []).forEach((item) => {
+            const requestNumber = normalizeValue(item?.request_number);
+            if (!requestNumber) return;
+
+            nextMap.set(requestNumber, {
+                request_basis: normalizeValue(item?.request_basis) || "-",
+                created_by: normalizeValue(item?.created_by) || "-",
+            });
+        });
+
+        requestMetaByNumberRef.current = nextMap;
+        return nextMap;
     }, [apiUrl]);
 
     useEffect(() => {
@@ -715,6 +941,63 @@ export default function MoveTs() {
         printWindow.print();
     }
 
+    async function downloadExpenseActDocx(item, sourceItems) {
+        const normalizedActNumber = normalizeValue(item?.act_number);
+        const actItems = normalizedActNumber
+            ? sourceItems.filter(
+                  (sourceItem) =>
+                      normalizeValue(sourceItem.act_number) === normalizedActNumber,
+              )
+            : [item];
+
+        const [templateBuffer, requestMetaByNumber] = await Promise.all([
+            fetch(EXPENSE_ACT_TEMPLATE_URL).then(async (response) => {
+                if (!response.ok) {
+                    throw new Error("Не удалось загрузить шаблон Word");
+                }
+
+                return response.arrayBuffer();
+            }),
+            ensureRequestMetaLoaded(),
+        ]);
+
+        const zip = new PizZip(templateBuffer);
+        const documentFile = zip.file("word/document.xml");
+        if (!documentFile) {
+            throw new Error("В шаблоне Word отсутствует document.xml");
+        }
+
+        const nextDocumentXml = buildExpenseActDocumentXml(
+            documentFile.asText(),
+            {
+                actNumber: item?.act_number || "",
+                moveDate: item?.move_date,
+                items: actItems,
+                requestMetaByNumber,
+            },
+        );
+
+        zip.file("word/document.xml", nextDocumentXml);
+
+        const blob = zip.generate({
+            type: "blob",
+            mimeType:
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        });
+
+        const safeActNumber = normalizeValue(item?.act_number).replaceAll("/", "-");
+        const fileName = `Akt_Raskhoda_${safeActNumber || "bez-nomera"}.docx`;
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+    }
+
     async function handleSaveAct(shouldPrint = false) {
         if (!selectedItem?._id) {
             setActModalError("Не удалось определить запись для формирования акта");
@@ -786,7 +1069,11 @@ export default function MoveTs() {
             setIsActModalOpen(false);
 
             if (shouldPrint) {
-                printActForItem(responseBody, nextItems);
+                if (getResolvedActType(responseBody) === "expense") {
+                    await downloadExpenseActDocx(responseBody, nextItems);
+                } else {
+                    printActForItem(responseBody, nextItems);
+                }
             }
         } catch (saveError) {
             setActModalError(saveError.message || "Ошибка формирования акта");
