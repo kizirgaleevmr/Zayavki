@@ -21,6 +21,11 @@ const MONGO_CONNECT_OPTIONS = {
     serverSelectionTimeoutMS: 5000,
 };
 const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
+const DECISION_KIND_OPTIONS = [
+    "supplement",
+    "repair_on_site",
+    "replacement",
+];
 
 function ensureMongoDbName(uri, dbName) {
     if (/^mongodb(\+srv)?:\/\/[^/]+\/[^?]+/.test(uri)) {
@@ -167,6 +172,11 @@ const zayavkaScheme = new Schema(
             enum: REQUEST_BASIS_OPTIONS,
             required: true,
         },
+        decision_kind: {
+            type: String,
+            enum: [...DECISION_KIND_OPTIONS, ""],
+            default: "",
+        },
         device_issue: { type: String, required: true },
         contact_person: { type: String, required: true },
         urgency: {
@@ -176,6 +186,11 @@ const zayavkaScheme = new Schema(
         },
         decision: { type: String, default: "" },
         decision_date: { type: Date, default: null },
+        repair_description: { type: String, default: "" },
+        replacement_device_type: { type: String, default: "" },
+        replacement_device_name: { type: String, default: "" },
+        replacement_device_serial: { type: String, default: "" },
+        replacement_inv_number: { type: String, default: "" },
         device_photo: {
             file_name: { type: String },
             mime_type: { type: String },
@@ -435,6 +450,15 @@ function normalizeRequestBasis(value) {
     return match || "";
 }
 
+function normalizeDecisionKind(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    const match = DECISION_KIND_OPTIONS.find(
+        (item) => item.toLowerCase() === normalized,
+    );
+
+    return match || "";
+}
+
 async function getKsaNumberSafe(ksaId, fallbackNumber = "") {
     const normalizedKsaId = String(ksaId || "").trim();
     if (!normalizedKsaId) {
@@ -482,6 +506,45 @@ async function createMoveTsForZayavka({
         to_location: destinationKsaNumber,
         quantity: 1,
     });
+}
+
+async function upsertMoveTsForReplacementDecision({
+    requestNumber,
+    ksaId,
+    ksaNumber,
+    deviceType,
+    deviceName,
+    deviceSerial,
+    invNumber,
+}) {
+    const destinationKsaNumber = await getKsaNumberSafe(ksaId, ksaNumber);
+
+    return MoveTs.findOneAndUpdate(
+        {
+            request_number: String(requestNumber || "").trim(),
+            status: "на отправку",
+        },
+        {
+            $set: {
+                act_number: "",
+                move_date: new Date(),
+                status: "на отправку",
+                delivery_method: "",
+                device_type: String(deviceType || "").trim(),
+                device_name: String(deviceName || "").trim(),
+                device_serial: String(deviceSerial || "").trim(),
+                inv_number: String(invNumber || "").trim(),
+                from_location: "СЦ БТИ",
+                to_location: destinationKsaNumber,
+                quantity: 1,
+            },
+        },
+        {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+        },
+    );
 }
 
 function getCreatedByValue(item) {
@@ -794,6 +857,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
         const now = new Date();
         const totalZayavki = await getZayavkiCountSafe();
         const requestNumber = formatRequestNumber(now, totalZayavki + 1);
+        const normalizedRequestBasis = normalizeRequestBasis(request_basis);
 
         created = await Zayavka.create({
             request_number: requestNumber,
@@ -804,7 +868,20 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             device_type,
             device_name,
             device_serial,
-            request_basis: normalizeRequestBasis(request_basis),
+            request_basis: normalizedRequestBasis,
+            decision:
+                normalizedRequestBasis === "Дооснащение"
+                    ? "Дооснащение"
+                    : "",
+            decision_kind:
+                normalizedRequestBasis === "Дооснащение" ? "supplement" : "",
+            decision_date:
+                normalizedRequestBasis === "Дооснащение" ? now : null,
+            repair_description: "",
+            replacement_device_type: "",
+            replacement_device_name: "",
+            replacement_device_serial: "",
+            replacement_inv_number: "",
             device_issue,
             contact_person,
             urgency: normalizeUrgency(urgency),
@@ -819,7 +896,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             deviceType: device_type,
             deviceName: device_name,
             deviceSerial: device_serial,
-            requestBasis: request_basis,
+            requestBasis: normalizedRequestBasis,
         });
 
         return res.status(201).json({
@@ -1113,12 +1190,21 @@ app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
 app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const { decision, decision_date } = req.body;
+        const {
+            decision,
+            decision_date,
+            decision_kind,
+            repair_description,
+            replacement_device_type,
+            replacement_device_name,
+            replacement_device_serial,
+            replacement_inv_number,
+        } = req.body;
 
-        if (!decision || !String(decision).trim()) {
-            return res.status(400).json({
-                message:
-                    "Поле 'Принятое решение' обязательно",
+        const zayavka = await Zayavka.findById(id).lean();
+        if (!zayavka) {
+            return res.status(404).json({
+                message: "Заявка не найдена",
             });
         }
 
@@ -1136,20 +1222,98 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
             });
         }
 
+        const requestBasis = normalizeRequestBasis(zayavka.request_basis);
+        let nextDecision = "";
+        let nextDecisionKind = "";
+        let nextRepairDescription = "";
+        let nextReplacementDeviceType = "";
+        let nextReplacementDeviceName = "";
+        let nextReplacementDeviceSerial = "";
+        let nextReplacementInvNumber = "";
+
+        if (requestBasis === "Дооснащение") {
+            nextDecision = "Дооснащение";
+            nextDecisionKind = "supplement";
+        } else {
+            const normalizedDecisionKind = normalizeDecisionKind(decision_kind);
+
+            if (!normalizedDecisionKind || normalizedDecisionKind === "supplement") {
+                return res.status(400).json({
+                    message: "Выберите вид ремонта",
+                });
+            }
+
+            if (normalizedDecisionKind === "repair_on_site") {
+                if (!String(repair_description || "").trim()) {
+                    return res.status(400).json({
+                        message: "Укажите описание ремонта",
+                    });
+                }
+
+                nextDecision = "Ремонт на месте";
+                nextDecisionKind = "repair_on_site";
+                nextRepairDescription = String(repair_description).trim();
+            }
+
+            if (normalizedDecisionKind === "replacement") {
+                if (
+                    !String(replacement_device_type || "").trim() ||
+                    !String(replacement_device_name || "").trim() ||
+                    !String(replacement_device_serial || "").trim() ||
+                    !String(replacement_inv_number || "").trim()
+                ) {
+                    return res.status(400).json({
+                        message: "Заполните все поля для замены",
+                    });
+                }
+
+                nextDecision = "Замена";
+                nextDecisionKind = "replacement";
+                nextReplacementDeviceType = String(
+                    replacement_device_type,
+                ).trim();
+                nextReplacementDeviceName = String(
+                    replacement_device_name,
+                ).trim();
+                nextReplacementDeviceSerial = String(
+                    replacement_device_serial,
+                ).trim();
+                nextReplacementInvNumber = String(
+                    replacement_inv_number,
+                ).trim();
+            }
+
+            if (!nextDecision) {
+                nextDecision = String(decision || "").trim();
+            }
+        }
+
         const updated = await Zayavka.findByIdAndUpdate(
             id,
             {
                 $set: {
-                    decision: String(decision).trim(),
+                    decision: nextDecision,
+                    decision_kind: nextDecisionKind,
                     decision_date: parsedDate,
+                    repair_description: nextRepairDescription,
+                    replacement_device_type: nextReplacementDeviceType,
+                    replacement_device_name: nextReplacementDeviceName,
+                    replacement_device_serial: nextReplacementDeviceSerial,
+                    replacement_inv_number: nextReplacementInvNumber,
                 },
             },
             { new: true },
-        );
+        ).lean();
 
-        if (!updated) {
-            return res.status(404).json({
-                message: "Заявка не найдена",
+        if (nextDecisionKind === "replacement") {
+            await upsertMoveTsForReplacementDecision({
+                requestNumber: zayavka.request_number,
+                ksaId: zayavka.ksa_id,
+                ksaNumber: zayavka.ksa_number,
+                deviceType: nextReplacementDeviceType,
+                deviceName: nextReplacementDeviceName,
+                deviceSerial: nextReplacementDeviceSerial,
+                invNumber: nextReplacementInvNumber,
             });
         }
 

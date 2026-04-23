@@ -4,6 +4,10 @@ import { fetchWithAuth, AUTH_USER_KEY } from "../utils/auth";
 import { getApiUrl } from "../utils/api";
 
 const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
+const REPAIR_DECISION_OPTIONS = [
+    { value: "repair_on_site", label: "Ремонт на месте" },
+    { value: "replacement", label: "Замена" },
+];
 const ZAYAVKI_TABLE_COLUMNS = [
     { key: "requestId", label: "№ заявки", width: 170, minWidth: 140 },
     { key: "createdAt", label: "Дата", width: 190, minWidth: 150 },
@@ -96,6 +100,13 @@ export default function AllZayavki() {
     const [selectedZayavka, setSelectedZayavka] = useState(null);
     const [decisionText, setDecisionText] = useState("");
     const [decisionDate, setDecisionDate] = useState("");
+    const [decisionKind, setDecisionKind] = useState("");
+    const [replacementForm, setReplacementForm] = useState({
+        device_type: "",
+        device_name: "",
+        device_serial: "",
+        inv_number: "",
+    });
     const [isSavingDecision, setIsSavingDecision] = useState(false);
     const [decisionError, setDecisionError] = useState("");
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -480,12 +491,36 @@ export default function AllZayavki() {
 
     function openDecisionModal(item) {
         setSelectedZayavka(item);
-        setDecisionText(item.decision || "");
+        const nextDecisionKind =
+            item.decision_kind ||
+            (item.request_basis === "Дооснащение"
+                ? "supplement"
+                : item.decision === "Замена"
+                  ? "replacement"
+                  : item.decision
+                    ? "repair_on_site"
+                    : "");
+
+        setDecisionKind(nextDecisionKind);
+        setDecisionText(
+            item.repair_description ||
+                (nextDecisionKind === "repair_on_site"
+                    ? item.decision || ""
+                    : ""),
+        );
         setDecisionDate(
             item.decision_date
                 ? new Date(item.decision_date).toISOString().slice(0, 10)
                 : "",
         );
+        setReplacementForm({
+            device_type:
+                item.replacement_device_type || item.device_type || "",
+            device_name:
+                item.replacement_device_name || item.device_name || "",
+            device_serial: item.replacement_device_serial || "",
+            inv_number: item.replacement_inv_number || "",
+        });
         setDecisionError("");
         setIsModalOpen(true);
     }
@@ -494,7 +529,14 @@ export default function AllZayavki() {
         setIsModalOpen(false);
         setSelectedZayavka(null);
         setDecisionText("");
+        setDecisionKind("");
         setDecisionDate("");
+        setReplacementForm({
+            device_type: "",
+            device_name: "",
+            device_serial: "",
+            inv_number: "",
+        });
         setDecisionError("");
     }
 
@@ -806,6 +848,11 @@ strong { display: inline-block; min-width: 180px; }
 <p><strong>Неправильность:</strong> ${detailsZayavka.device_issue || "-"}</p>
 <p><strong>Решение:</strong> ${detailsZayavka.decision || "-"}</p>
 <p><strong>Дата решения:</strong> ${decisionDate}</p>
+${detailsZayavka.repair_description ? `<p><strong>Описание ремонта:</strong> ${detailsZayavka.repair_description}</p>` : ""}
+${detailsZayavka.replacement_device_type ? `<p><strong>Замена - тип устройства:</strong> ${detailsZayavka.replacement_device_type}</p>` : ""}
+${detailsZayavka.replacement_device_name ? `<p><strong>Замена - наименование:</strong> ${detailsZayavka.replacement_device_name}</p>` : ""}
+${detailsZayavka.replacement_device_serial ? `<p><strong>Замена - серийный номер:</strong> ${detailsZayavka.replacement_device_serial}</p>` : ""}
+${detailsZayavka.replacement_inv_number ? `<p><strong>Замена - инвентарный номер:</strong> ${detailsZayavka.replacement_inv_number}</p>` : ""}
 <div class="photo">
 <p><strong>Фото:</strong></p>
 ${photoBlock}
@@ -835,8 +882,23 @@ ${photoBlock}
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        decision: decisionText,
+                        decision:
+                            selectedZayavka.request_basis === "Дооснащение"
+                                ? "Дооснащение"
+                                : decisionKind === "replacement"
+                                  ? "Замена"
+                                  : "Ремонт на месте",
                         decision_date: decisionDate,
+                        decision_kind: decisionKind,
+                        repair_description: decisionText,
+                        replacement_device_type:
+                            replacementForm.device_type,
+                        replacement_device_name:
+                            replacementForm.device_name,
+                        replacement_device_serial:
+                            replacementForm.device_serial,
+                        replacement_inv_number:
+                            replacementForm.inv_number,
                     }),
                 },
             );
@@ -1738,20 +1800,171 @@ ${photoBlock}
                                 </p>
                             </>
                         ) : null}
-                        <div className="field">
-                            <label className="label">Решение</label>
-                            <div className="control">
-                                <textarea
-                                    className="textarea"
-                                    value={decisionText}
-                                    onChange={(e) =>
-                                        setDecisionText(e.target.value)
-                                    }
-                                    placeholder="Введите решение"
-                                    rows="4"
-                                />
+                        {selectedZayavka?.request_basis === "Дооснащение" ? (
+                            <div className="field">
+                                <label className="label">Решение</label>
+                                <div className="control">
+                                    <input
+                                        className="input"
+                                        type="text"
+                                        value="Дооснащение"
+                                        disabled
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <>
+                                <div className="field">
+                                    <label className="label">Вид ремонта</label>
+                                    <div className="control">
+                                        <div className="select is-fullwidth">
+                                            <select
+                                                value={decisionKind}
+                                                onChange={(e) =>
+                                                    setDecisionKind(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            >
+                                                <option value="">
+                                                    Выбрать вид ремонта
+                                                </option>
+                                                {REPAIR_DECISION_OPTIONS.map(
+                                                    (item) => (
+                                                        <option
+                                                            key={item.value}
+                                                            value={item.value}
+                                                        >
+                                                            {item.label}
+                                                        </option>
+                                                    ),
+                                                )}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                {decisionKind === "repair_on_site" ? (
+                                    <div className="field">
+                                        <label className="label">
+                                            Описание ремонта
+                                        </label>
+                                        <div className="control">
+                                            <textarea
+                                                className="textarea"
+                                                value={decisionText}
+                                                onChange={(e) =>
+                                                    setDecisionText(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Укажите описание ремонта"
+                                                rows="4"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : null}
+                                {decisionKind === "replacement" ? (
+                                    <>
+                                        <div className="field">
+                                            <label className="label">
+                                                Тип устройства
+                                            </label>
+                                            <div className="control">
+                                                <input
+                                                    className="input"
+                                                    type="text"
+                                                    value={
+                                                        replacementForm.device_type
+                                                    }
+                                                    onChange={(e) =>
+                                                        setReplacementForm(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                device_type:
+                                                                    e.target
+                                                                        .value,
+                                                            }),
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="field">
+                                            <label className="label">
+                                                Наименование
+                                            </label>
+                                            <div className="control">
+                                                <input
+                                                    className="input"
+                                                    type="text"
+                                                    value={
+                                                        replacementForm.device_name
+                                                    }
+                                                    onChange={(e) =>
+                                                        setReplacementForm(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                device_name:
+                                                                    e.target
+                                                                        .value,
+                                                            }),
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="field">
+                                            <label className="label">
+                                                Серийный номер
+                                            </label>
+                                            <div className="control">
+                                                <input
+                                                    className="input"
+                                                    type="text"
+                                                    value={
+                                                        replacementForm.device_serial
+                                                    }
+                                                    onChange={(e) =>
+                                                        setReplacementForm(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                device_serial:
+                                                                    e.target
+                                                                        .value,
+                                                            }),
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="field">
+                                            <label className="label">
+                                                Инвентарный номер
+                                            </label>
+                                            <div className="control">
+                                                <input
+                                                    className="input"
+                                                    type="text"
+                                                    value={
+                                                        replacementForm.inv_number
+                                                    }
+                                                    onChange={(e) =>
+                                                        setReplacementForm(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                inv_number:
+                                                                    e.target
+                                                                        .value,
+                                                            }),
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : null}
+                            </>
+                        )}
                         <div className="field">
                             <label className="label">Дата</label>
                             <div className="control">
@@ -1940,6 +2153,44 @@ ${photoBlock}
                                     <strong>Контактное лицо:</strong>{" "}
                                     {detailsZayavka.contact_person || "-"}
                                 </p>
+                                {detailsZayavka.repair_description ? (
+                                    <p>
+                                        <strong>Описание ремонта:</strong>{" "}
+                                        {detailsZayavka.repair_description}
+                                    </p>
+                                ) : null}
+                                {detailsZayavka.replacement_device_type ? (
+                                    <p>
+                                        <strong>Замена - тип устройства:</strong>{" "}
+                                        {
+                                            detailsZayavka.replacement_device_type
+                                        }
+                                    </p>
+                                ) : null}
+                                {detailsZayavka.replacement_device_name ? (
+                                    <p>
+                                        <strong>Замена - наименование:</strong>{" "}
+                                        {
+                                            detailsZayavka.replacement_device_name
+                                        }
+                                    </p>
+                                ) : null}
+                                {detailsZayavka.replacement_device_serial ? (
+                                    <p>
+                                        <strong>Замена - серийный номер:</strong>{" "}
+                                        {
+                                            detailsZayavka.replacement_device_serial
+                                        }
+                                    </p>
+                                ) : null}
+                                {detailsZayavka.replacement_inv_number ? (
+                                    <p>
+                                        <strong>Замена - инвентарный номер:</strong>{" "}
+                                        {
+                                            detailsZayavka.replacement_inv_number
+                                        }
+                                    </p>
+                                ) : null}
                                 <p>
                                     <strong>Фото:</strong>{" "}
                                     {getDevicePhotoDataUrl(detailsZayavka) ? (
