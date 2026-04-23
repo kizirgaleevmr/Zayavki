@@ -107,6 +107,15 @@ export default function AllZayavki() {
         device_serial: "",
         inv_number: "",
     });
+    const [replacementDeviceTypes, setReplacementDeviceTypes] = useState([]);
+    const [replacementDeviceNames, setReplacementDeviceNames] = useState([]);
+    const [replacementDeviceSerials, setReplacementDeviceSerials] = useState(
+        [],
+    );
+    const [replacementSelectedDeviceTypeId, setReplacementSelectedDeviceTypeId] =
+        useState("");
+    const [replacementSelectedDeviceNameId, setReplacementSelectedDeviceNameId] =
+        useState("");
     const [isSavingDecision, setIsSavingDecision] = useState(false);
     const [decisionError, setDecisionError] = useState("");
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -204,6 +213,38 @@ export default function AllZayavki() {
         if (byId) return String(byId.id_naimenovanie || "").trim();
 
         const byText = editDeviceNames.find(
+            (item) =>
+                normalizeText(item?.ts_naimenovanie) ===
+                normalizeText(rawValue),
+        );
+        return String(byText?.id_naimenovanie || "").trim();
+    }
+
+    function getReplacementDeviceTypeIdByValue(value) {
+        const rawValue = String(value || "").trim();
+        if (!rawValue) return "";
+
+        const byId = replacementDeviceTypes.find(
+            (item) => String(item?.id_type || "").trim() === rawValue,
+        );
+        if (byId) return String(byId.id_type || "").trim();
+
+        const byText = replacementDeviceTypes.find(
+            (item) => normalizeText(item?.type) === normalizeText(rawValue),
+        );
+        return String(byText?.id_type || "").trim();
+    }
+
+    function getReplacementDeviceNameIdByValue(value) {
+        const rawValue = String(value || "").trim();
+        if (!rawValue) return "";
+
+        const byId = replacementDeviceNames.find(
+            (item) => String(item?.id_naimenovanie || "").trim() === rawValue,
+        );
+        if (byId) return String(byId.id_naimenovanie || "").trim();
+
+        const byText = replacementDeviceNames.find(
             (item) =>
                 normalizeText(item?.ts_naimenovanie) ===
                 normalizeText(rawValue),
@@ -537,7 +578,67 @@ export default function AllZayavki() {
             device_serial: "",
             inv_number: "",
         });
+        setReplacementSelectedDeviceTypeId("");
+        setReplacementSelectedDeviceNameId("");
+        setReplacementDeviceNames([]);
+        setReplacementDeviceSerials([]);
         setDecisionError("");
+    }
+
+    function handleReplacementDeviceTypeChange(evt) {
+        const nextTypeId = evt.target.value;
+        const selectedType = replacementDeviceTypes.find(
+            (item) => String(item?.id_type || "").trim() === nextTypeId,
+        );
+
+        setReplacementSelectedDeviceTypeId(nextTypeId);
+        setReplacementSelectedDeviceNameId("");
+        setReplacementDeviceNames([]);
+        setReplacementDeviceSerials([]);
+        setReplacementForm((prev) => ({
+            ...prev,
+            device_type: String(selectedType?.type || "").trim(),
+            device_name: "",
+            device_serial: "",
+            inv_number: "",
+        }));
+    }
+
+    function handleReplacementDeviceNameChange(evt) {
+        const nextNameValue = evt.target.value;
+        const selectedName = replacementDeviceNames.find(
+            (item) =>
+                normalizeText(item?.ts_naimenovanie) ===
+                normalizeText(nextNameValue),
+        );
+
+        setReplacementSelectedDeviceNameId(
+            String(selectedName?.id_naimenovanie || "").trim(),
+        );
+        if (!selectedName) {
+            setReplacementDeviceSerials([]);
+        }
+        setReplacementForm((prev) => ({
+            ...prev,
+            device_name: nextNameValue,
+            device_serial: "",
+            inv_number: "",
+        }));
+    }
+
+    function handleReplacementDeviceSerialChange(evt) {
+        const nextSerialValue = evt.target.value;
+        const selectedSerial = replacementDeviceSerials.find(
+            (item) =>
+                normalizeText(item?.serial_number) ===
+                normalizeText(nextSerialValue),
+        );
+
+        setReplacementForm((prev) => ({
+            ...prev,
+            device_serial: nextSerialValue,
+            inv_number: String(selectedSerial?.inv_number || prev.inv_number || "").trim(),
+        }));
     }
 
     async function openDetailsModal(item, evt) {
@@ -793,6 +894,160 @@ export default function AllZayavki() {
 
         getEditDeviceSerials();
     }, [apiUrl, editSelectedDeviceNameId, isEditModalOpen]);
+
+    useEffect(() => {
+        if (!isModalOpen || decisionKind !== "replacement") {
+            return;
+        }
+
+        async function getReplacementDeviceTypes() {
+            try {
+                const response = await fetchWithAuth(`${apiUrl}/device-types`, {
+                    method: "GET",
+                });
+
+                if (response.ok) {
+                    const typeData = await response.json();
+                    setReplacementDeviceTypes(
+                        Array.isArray(typeData) ? typeData : [],
+                    );
+                } else {
+                    setReplacementDeviceTypes([]);
+                }
+            } catch (error) {
+                setReplacementDeviceTypes([]);
+                console.error("Error details:", error);
+            }
+        }
+
+        getReplacementDeviceTypes();
+    }, [apiUrl, decisionKind, isModalOpen]);
+
+    useEffect(() => {
+        if (
+            !isModalOpen ||
+            decisionKind !== "replacement" ||
+            !replacementForm.device_type ||
+            !replacementDeviceTypes.length
+        ) {
+            return;
+        }
+
+        const nextTypeId = getReplacementDeviceTypeIdByValue(
+            replacementForm.device_type,
+        );
+        if (nextTypeId !== replacementSelectedDeviceTypeId) {
+            setReplacementSelectedDeviceTypeId(nextTypeId);
+        }
+    }, [
+        decisionKind,
+        isModalOpen,
+        replacementDeviceTypes,
+        replacementForm.device_type,
+        replacementSelectedDeviceTypeId,
+    ]);
+
+    useEffect(() => {
+        if (
+            !isModalOpen ||
+            decisionKind !== "replacement" ||
+            !replacementSelectedDeviceTypeId
+        ) {
+            setReplacementDeviceNames([]);
+            setReplacementSelectedDeviceNameId("");
+            setReplacementDeviceSerials([]);
+            return;
+        }
+
+        async function getReplacementDeviceNames() {
+            try {
+                const response = await fetchWithAuth(
+                    `${apiUrl}/device-names?typeId=${encodeURIComponent(
+                        replacementSelectedDeviceTypeId,
+                    )}`,
+                    {
+                        method: "GET",
+                    },
+                );
+
+                if (response.ok) {
+                    const nameData = await response.json();
+                    setReplacementDeviceNames(
+                        Array.isArray(nameData) ? nameData : [],
+                    );
+                } else {
+                    setReplacementDeviceNames([]);
+                }
+            } catch (error) {
+                setReplacementDeviceNames([]);
+                console.error("Error details:", error);
+            }
+        }
+
+        getReplacementDeviceNames();
+    }, [apiUrl, decisionKind, isModalOpen, replacementSelectedDeviceTypeId]);
+
+    useEffect(() => {
+        if (
+            !isModalOpen ||
+            decisionKind !== "replacement" ||
+            !replacementForm.device_name ||
+            !replacementDeviceNames.length
+        ) {
+            return;
+        }
+
+        const nextNameId = getReplacementDeviceNameIdByValue(
+            replacementForm.device_name,
+        );
+        if (nextNameId !== replacementSelectedDeviceNameId) {
+            setReplacementSelectedDeviceNameId(nextNameId);
+        }
+    }, [
+        decisionKind,
+        isModalOpen,
+        replacementDeviceNames,
+        replacementForm.device_name,
+        replacementSelectedDeviceNameId,
+    ]);
+
+    useEffect(() => {
+        if (
+            !isModalOpen ||
+            decisionKind !== "replacement" ||
+            !replacementSelectedDeviceNameId
+        ) {
+            setReplacementDeviceSerials([]);
+            return;
+        }
+
+        async function getReplacementDeviceSerials() {
+            try {
+                const response = await fetchWithAuth(
+                    `${apiUrl}/device-serials?nameId=${encodeURIComponent(
+                        replacementSelectedDeviceNameId,
+                    )}`,
+                    {
+                        method: "GET",
+                    },
+                );
+
+                if (response.ok) {
+                    const serialData = await response.json();
+                    setReplacementDeviceSerials(
+                        Array.isArray(serialData) ? serialData : [],
+                    );
+                } else {
+                    setReplacementDeviceSerials([]);
+                }
+            } catch (error) {
+                setReplacementDeviceSerials([]);
+                console.error("Error details:", error);
+            }
+        }
+
+        getReplacementDeviceSerials();
+    }, [apiUrl, decisionKind, isModalOpen, replacementSelectedDeviceNameId]);
 
     function printDetails() {
         if (!detailsZayavka) return;
@@ -1870,23 +2125,64 @@ ${photoBlock}
                                                 Тип устройства
                                             </label>
                                             <div className="control">
-                                                <input
-                                                    className="input"
-                                                    type="text"
-                                                    value={
-                                                        replacementForm.device_type
-                                                    }
-                                                    onChange={(e) =>
-                                                        setReplacementForm(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                device_type:
-                                                                    e.target
-                                                                        .value,
-                                                            }),
-                                                        )
-                                                    }
-                                                />
+                                                <div className="select is-fullwidth">
+                                                    <select
+                                                        value={
+                                                            replacementSelectedDeviceTypeId ||
+                                                            (replacementForm.device_type
+                                                                ? "__current__"
+                                                                : "")
+                                                        }
+                                                        onChange={
+                                                            handleReplacementDeviceTypeChange
+                                                        }
+                                                    >
+                                                        <option value="">
+                                                            Выбрать тип устройства
+                                                        </option>
+                                                        {!replacementSelectedDeviceTypeId &&
+                                                        replacementForm.device_type ? (
+                                                            <option value="__current__">
+                                                                {
+                                                                    replacementForm.device_type
+                                                                }
+                                                            </option>
+                                                        ) : null}
+                                                        {replacementDeviceTypes.map(
+                                                            (item) => {
+                                                                const typeId = String(
+                                                                    item?.id_type ||
+                                                                        "",
+                                                                ).trim();
+                                                                const typeValue = String(
+                                                                    item?.type ||
+                                                                        "",
+                                                                ).trim();
+                                                                if (
+                                                                    !typeId ||
+                                                                    !typeValue
+                                                                ) {
+                                                                    return null;
+                                                                }
+
+                                                                return (
+                                                                    <option
+                                                                        key={
+                                                                            typeId
+                                                                        }
+                                                                        value={
+                                                                            typeId
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            typeValue
+                                                                        }
+                                                                    </option>
+                                                                );
+                                                            },
+                                                        )}
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="field">
@@ -1897,20 +2193,50 @@ ${photoBlock}
                                                 <input
                                                     className="input"
                                                     type="text"
+                                                    list="replacement-device-name-suggestions"
                                                     value={
                                                         replacementForm.device_name
                                                     }
-                                                    onChange={(e) =>
-                                                        setReplacementForm(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                device_name:
-                                                                    e.target
-                                                                        .value,
-                                                            }),
-                                                        )
+                                                    onChange={
+                                                        handleReplacementDeviceNameChange
                                                     }
+                                                    disabled={
+                                                        !replacementSelectedDeviceTypeId &&
+                                                        !replacementForm.device_type
+                                                    }
+                                                    placeholder={
+                                                        replacementSelectedDeviceTypeId ||
+                                                        replacementForm.device_type
+                                                            ? "Введите или выберите наименование"
+                                                            : "Сначала выберите тип устройства"
+                                                    }
+                                                    autoComplete="off"
                                                 />
+                                                <datalist id="replacement-device-name-suggestions">
+                                                    {replacementDeviceNames.map(
+                                                        (item) => {
+                                                            const nameValue = String(
+                                                                item?.ts_naimenovanie ||
+                                                                    "",
+                                                            ).trim();
+                                                            if (!nameValue) {
+                                                                return null;
+                                                            }
+
+                                                            return (
+                                                                <option
+                                                                    key={
+                                                                        item.id_naimenovanie ||
+                                                                        nameValue
+                                                                    }
+                                                                    value={
+                                                                        nameValue
+                                                                    }
+                                                                />
+                                                            );
+                                                        },
+                                                    )}
+                                                </datalist>
                                             </div>
                                         </div>
                                         <div className="field">
@@ -1921,20 +2247,50 @@ ${photoBlock}
                                                 <input
                                                     className="input"
                                                     type="text"
+                                                    list="replacement-device-serial-suggestions"
                                                     value={
                                                         replacementForm.device_serial
                                                     }
-                                                    onChange={(e) =>
-                                                        setReplacementForm(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                device_serial:
-                                                                    e.target
-                                                                        .value,
-                                                            }),
-                                                        )
+                                                    onChange={
+                                                        handleReplacementDeviceSerialChange
                                                     }
+                                                    disabled={
+                                                        !replacementSelectedDeviceNameId &&
+                                                        !replacementForm.device_name
+                                                    }
+                                                    placeholder={
+                                                        replacementSelectedDeviceNameId ||
+                                                        replacementForm.device_name
+                                                            ? "Введите или выберите серийный номер"
+                                                            : "Сначала выберите наименование"
+                                                    }
+                                                    autoComplete="off"
                                                 />
+                                                <datalist id="replacement-device-serial-suggestions">
+                                                    {replacementDeviceSerials.map(
+                                                        (item) => {
+                                                            const serialValue = String(
+                                                                item?.serial_number ||
+                                                                    "",
+                                                            ).trim();
+                                                            if (!serialValue) {
+                                                                return null;
+                                                            }
+
+                                                            return (
+                                                                <option
+                                                                    key={
+                                                                        item.id_ts ||
+                                                                        serialValue
+                                                                    }
+                                                                    value={
+                                                                        serialValue
+                                                                    }
+                                                                />
+                                                            );
+                                                        },
+                                                    )}
+                                                </datalist>
                                             </div>
                                         </div>
                                         <div className="field">
