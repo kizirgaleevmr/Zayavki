@@ -16,6 +16,7 @@ import ReferenceBook from "../Pages/ReferenceBook";
 import Consultation from "../Pages/Сonsultations";
 import KnowledgeBase from "../Pages/KnowledgeBase";
 import { KnbDoska } from "../Pages/KnbDoska";
+import MoveTs from "../Pages/MoveTs";
 const route = createHashRouter(
     createRoutesFromElements(
         <>
@@ -31,6 +32,7 @@ const route = createHashRouter(
                     </Route>
                     <Route path="/consultations" element={<Consultation />} />
                     <Route path="/knbDoska" element={<KnbDoska />} />
+                    <Route path="/move-ts" element={<MoveTs />} />
                     <Route path="/referenceBook" element={<ReferenceBook />} />
                     <Route path="/knowledgeBase" element={<KnowledgeBase />} />
                 </Route>

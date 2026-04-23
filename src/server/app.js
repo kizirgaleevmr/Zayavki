@@ -367,6 +367,27 @@ async function findDeviceItemBySerialSafe(serialNumber) {
     return null;
 }
 
+async function fetchMoveTsSafe() {
+    const fromModel = await MoveTs.find({}).sort({ move_date: -1, createdAt: -1 }).lean();
+    if (fromModel.length > 0) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["move_ts", "movee_ts"];
+
+    for (const collectionName of candidates) {
+        const docs = await db
+            .collection(collectionName)
+            .find({})
+            .sort({ move_date: -1, createdAt: -1 })
+            .toArray();
+        if (docs.length > 0) {
+            return docs;
+        }
+    }
+
+    return [];
+}
+
 async function fetchZayavkiSafe() {
     const fromModel = await Zayavka.find({}).sort({ createdAt: -1 }).lean();
     if (fromModel.length > 0) return fromModel;
@@ -721,6 +742,18 @@ app.get("/device-serials", authMiddleware, async (req, res) => {
     const deviceSerials = await fetchDeviceSerialsSafe(nameId);
     res.send(deviceSerials);
     return deviceSerials;
+});
+
+app.get("/move-ts", authMiddleware, async (req, res) => {
+    try {
+        const items = await fetchMoveTsSafe();
+        return res.status(200).json(items);
+    } catch (error) {
+        console.error("[GET /move-ts] error:", error);
+        return res.status(500).json({
+            message: "Ошибка получения движения техники",
+        });
+    }
 });
 
 app.post("/zayavki", authMiddleware, async (req, res) => {
