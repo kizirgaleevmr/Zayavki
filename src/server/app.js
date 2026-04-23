@@ -547,6 +547,47 @@ async function upsertMoveTsForReplacementDecision({
     );
 }
 
+async function upsertMoveTsForPickupDecision({
+    requestNumber,
+    ksaId,
+    ksaNumber,
+    deviceType,
+    deviceName,
+    deviceSerial,
+}) {
+    const [sourceKsaNumber, deviceItem] = await Promise.all([
+        getKsaNumberSafe(ksaId, ksaNumber),
+        findDeviceItemBySerialSafe(deviceSerial),
+    ]);
+
+    return MoveTs.findOneAndUpdate(
+        {
+            request_number: String(requestNumber || "").trim(),
+            status: "на забор",
+        },
+        {
+            $set: {
+                act_number: "",
+                move_date: new Date(),
+                status: "на забор",
+                delivery_method: "",
+                device_type: String(deviceType || "").trim(),
+                device_name: String(deviceName || "").trim(),
+                device_serial: String(deviceSerial || "").trim(),
+                inv_number: String(deviceItem?.inv_number || "").trim(),
+                from_location: sourceKsaNumber,
+                to_location: "СЦ БТИ",
+                quantity: 1,
+            },
+        },
+        {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+        },
+    );
+}
+
 function getCreatedByValue(item) {
     return item?.created_by || item?.createdBy || item?.author || "";
 }
@@ -1306,15 +1347,25 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
         ).lean();
 
         if (nextDecisionKind === "replacement") {
-            await upsertMoveTsForReplacementDecision({
-                requestNumber: zayavka.request_number,
-                ksaId: zayavka.ksa_id,
-                ksaNumber: zayavka.ksa_number,
-                deviceType: nextReplacementDeviceType,
-                deviceName: nextReplacementDeviceName,
-                deviceSerial: nextReplacementDeviceSerial,
-                invNumber: nextReplacementInvNumber,
-            });
+            await Promise.all([
+                upsertMoveTsForReplacementDecision({
+                    requestNumber: zayavka.request_number,
+                    ksaId: zayavka.ksa_id,
+                    ksaNumber: zayavka.ksa_number,
+                    deviceType: nextReplacementDeviceType,
+                    deviceName: nextReplacementDeviceName,
+                    deviceSerial: nextReplacementDeviceSerial,
+                    invNumber: nextReplacementInvNumber,
+                }),
+                upsertMoveTsForPickupDecision({
+                    requestNumber: zayavka.request_number,
+                    ksaId: zayavka.ksa_id,
+                    ksaNumber: zayavka.ksa_number,
+                    deviceType: zayavka.device_type,
+                    deviceName: zayavka.device_name,
+                    deviceSerial: zayavka.device_serial,
+                }),
+            ]);
         }
 
         return res.status(200).json({
