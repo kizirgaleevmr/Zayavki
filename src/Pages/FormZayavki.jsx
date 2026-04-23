@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { fetchWithAuth, getAuthHeaders, AUTH_USER_KEY } from "../utils/auth";
 import { getApiUrl } from "../utils/api";
 
+const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
+
 export default function FormZayavki() {
     const navigate = useNavigate();
     const [reg, setReg] = useState([]);
@@ -68,8 +70,12 @@ export default function FormZayavki() {
         const nextNameValue = evt.target.value;
         const selectedItem = deviceNames.find(
             (item) =>
-                String(item?.ts_naimenovanie || "").trim().toLowerCase() ===
-                String(nextNameValue || "").trim().toLowerCase(),
+                String(item?.ts_naimenovanie || "")
+                    .trim()
+                    .toLowerCase() ===
+                String(nextNameValue || "")
+                    .trim()
+                    .toLowerCase(),
         );
 
         setSelectedDeviceNameId(
@@ -142,6 +148,7 @@ export default function FormZayavki() {
                 device_type: getDeviceTypeLabel(selectedDeviceTypeId),
                 device_name: selectedDeviceName,
                 device_serial: selectedDeviceSerial,
+                request_basis: formData.get("request_basis"),
                 device_issue: formData.get("device_issue"),
                 contact_person: formData.get("contact_person"),
                 urgency: formData.get("urgency"),
@@ -294,7 +301,9 @@ export default function FormZayavki() {
 
                 if (response.ok) {
                     const serialData = await response.json();
-                    setDeviceSerials(Array.isArray(serialData) ? serialData : []);
+                    setDeviceSerials(
+                        Array.isArray(serialData) ? serialData : [],
+                    );
                 } else {
                     setDeviceSerials([]);
                 }
@@ -545,6 +554,27 @@ export default function FormZayavki() {
                             </div>
                         </div>
                         <div className="field">
+                            <label className="label">Основание заявки</label>
+                            <div className="control">
+                                <div className="select">
+                                    <select
+                                        name="request_basis"
+                                        required
+                                        defaultValue=""
+                                    >
+                                        <option value="">
+                                            Выбрать основание заявки
+                                        </option>
+                                        {REQUEST_BASIS_OPTIONS.map((item) => (
+                                            <option key={item} value={item}>
+                                                {item}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="field">
                             <label className="label">Срочность</label>
                             <div className="control">
                                 <div className="select">
@@ -657,16 +687,6 @@ export default function FormZayavki() {
     );
 }
 
-// TODO:- [ ]  добавить при добавление решения в заявки информацию о том кто добавил решение (фио и должность) и дату добавления решения
-
-//TODO!- [ ]  добавить при добавление решения в заявки информацию о том кто добавил решение (фио и должность) и дату добавления решения
-//TODO! -  добавить при решение заявки информацию для отгрузки оборудования и информацию кто отгрузил оборудования куда отгрузил и дату отгрузки
-
-
-
-
-
-
-
-
-
+//TODO:- [x]  добавить при добавление решения в заявки информацию о том кто добавил решение (фио и должность) и дату добавления решения
+//FIXME: -  добавить при решение заявки информацию для отгрузки оборудования и информацию кто отгрузил оборудования куда отгрузил и дату отгрузки
+//FIXME: - перенсти иконки редактирования удаления и просмотр в модалку по клику по строке

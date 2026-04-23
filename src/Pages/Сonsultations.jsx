@@ -1,3 +1,9 @@
 export default function ConstantSourceNode() {
-    return <div>Консультации....</div>;
+    return (
+        <>
+            <section className="container">
+                <h1>Консультации</h1>
+            </section>
+        </>
+    );
 }

@@ -50,6 +50,7 @@ function App() {
                                 )}
                             </NavLink>
                         </div>
+
                         <div className="navbar-item">
                             <NavLink to="/consultations">
                                 {({ isActive }) => (
@@ -59,6 +60,19 @@ function App() {
                                         }
                                     >
                                         Консультации
+                                    </span>
+                                )}
+                            </NavLink>
+                        </div>
+                        <div className="navbar-item">
+                            <NavLink to="/knbDoska">
+                                {({ isActive }) => (
+                                    <span
+                                        className={
+                                            isActive ? "active" : "is-white"
+                                        }
+                                    >
+                                        КНБ доска
                                     </span>
                                 )}
                             </NavLink>

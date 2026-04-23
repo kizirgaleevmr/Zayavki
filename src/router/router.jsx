@@ -15,6 +15,7 @@ import ProtectedRoute from "../Pages/ProtectedRoute";
 import ReferenceBook from "../Pages/ReferenceBook";
 import Consultation from "../Pages/Сonsultations";
 import KnowledgeBase from "../Pages/KnowledgeBase";
+import { KnbDoska } from "../Pages/KnbDoska";
 const route = createHashRouter(
     createRoutesFromElements(
         <>
@@ -29,6 +30,7 @@ const route = createHashRouter(
                         <Route path="/zayavki/all" element={<AllZayavki />} />
                     </Route>
                     <Route path="/consultations" element={<Consultation />} />
+                    <Route path="/knbDoska" element={<KnbDoska />} />
                     <Route path="/referenceBook" element={<ReferenceBook />} />
                     <Route path="/knowledgeBase" element={<KnowledgeBase />} />
                 </Route>

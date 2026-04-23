@@ -1,4 +1,5 @@
 const DEFAULT_LOCAL_API_URL = "http://localhost:3002";
+const DEFAULT_DEV_PROXY_API_URL = "/api";
 const FALLBACK_REMOTE_API_URL = "https://zayavki-b970.onrender.com";
 
 function trimTrailingSlash(value) {
@@ -30,10 +31,12 @@ export function getApiUrl() {
     }
 
     if (typeof window !== "undefined") {
-        const { hostname, port } = window.location;
-        if (isLocalFrontendHost(hostname) && port !== "3002") {
-            return FALLBACK_REMOTE_API_URL;
+        const { hostname } = window.location;
+        if (isLocalFrontendHost(hostname)) {
+            return DEFAULT_DEV_PROXY_API_URL;
         }
+
+        return FALLBACK_REMOTE_API_URL;
     }
 
     return DEFAULT_LOCAL_API_URL;

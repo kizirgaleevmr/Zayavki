@@ -4,7 +4,8 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "dev": "vite",
+        "dev": "set HTTP_PROXY=& set HTTPS_PROXY=& set ALL_PROXY=& vite --host 127.0.0.1 --port 5174",
+        "dev:local": "npm run dev",
         "build": "vite build",
         "lint": "eslint .",
         "preview": "vite preview",

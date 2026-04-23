@@ -3,8 +3,9 @@ import ExcelJS from "exceljs";
 import { fetchWithAuth, AUTH_USER_KEY } from "../utils/auth";
 import { getApiUrl } from "../utils/api";
 
+const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
 const ZAYAVKI_TABLE_COLUMNS = [
-    { key: "requestId", label: "№ заявки", width: 110, minWidth: 90 },
+    { key: "requestId", label: "№ заявки", width: 170, minWidth: 140 },
     { key: "createdAt", label: "Дата", width: 190, minWidth: 150 },
     { key: "photo", label: "Фото", width: 90, minWidth: 80 },
     { key: "ksa", label: "КСА", width: 180, minWidth: 140 },
@@ -105,6 +106,7 @@ export default function AllZayavki() {
         device_type: "",
         device_name: "",
         device_serial: "",
+        request_basis: "",
         device_issue: "",
         contact_person: "",
         urgency: "not_urgent",
@@ -146,6 +148,18 @@ export default function AllZayavki() {
 
     function getDeviceTypeText(value) {
         return deviceTypeLabels[value] || value || "-";
+    }
+
+    function getRequestBasisLabel(value) {
+        return REQUEST_BASIS_OPTIONS.includes(value) ? value : value || "-";
+    }
+
+    function getRequestNumberLabel(item) {
+        if (item?.request_number) {
+            return String(item.request_number);
+        }
+
+        return item?._id ? String(item._id).slice(-6) : "-";
     }
 
     function normalizeText(value) {
@@ -526,6 +540,7 @@ export default function AllZayavki() {
             device_type: item.device_type || "",
             device_name: item.device_name || "",
             device_serial: item.device_serial || "",
+            request_basis: item.request_basis || "",
             device_issue: item.device_issue || "",
             contact_person: item.contact_person || "",
             urgency: item.urgency || "not_urgent",
@@ -551,6 +566,7 @@ export default function AllZayavki() {
             device_type: "",
             device_name: "",
             device_serial: "",
+            request_basis: "",
             device_issue: "",
             contact_person: "",
             urgency: "not_urgent",
@@ -784,6 +800,7 @@ strong { display: inline-block; min-width: 180px; }
 <p><strong>Тип устройства:</strong> ${deviceTypeValue}</p>
 <p><strong>Название:</strong> ${detailsZayavka.device_name || "-"}</p>
 <p><strong>Серийный номер:</strong> ${detailsZayavka.device_serial || "-"}</p>
+<p><strong>Основание заявки:</strong> ${getRequestBasisLabel(detailsZayavka.request_basis)}</p>
 <p><strong>Срочность:</strong> ${getUrgencyLabel(detailsZayavka)}</p>
 <p><strong>Контактное лицо:</strong> ${detailsZayavka.contact_person || "-"}</p>
 <p><strong>Неправильность:</strong> ${detailsZayavka.device_issue || "-"}</p>
@@ -857,6 +874,7 @@ ${photoBlock}
                 device_type: editForm.device_type,
                 device_name: editForm.device_name,
                 device_serial: editForm.device_serial,
+                request_basis: editForm.request_basis,
                 device_issue: editForm.device_issue,
                 contact_person: editForm.contact_person,
                 urgency: editForm.urgency,
@@ -1035,6 +1053,11 @@ ${photoBlock}
                     key: "deviceSerial",
                     width: 22,
                 },
+                {
+                    header: "Основание заявки",
+                    key: "requestBasis",
+                    width: 22,
+                },
                 { header: "Срочность", key: "urgency", width: 16 },
                 {
                     header: "Контактное лицо",
@@ -1064,6 +1087,7 @@ ${photoBlock}
                         "-",
                     deviceName: item.device_name || "-",
                     deviceSerial: item.device_serial || "-",
+                    requestBasis: getRequestBasisLabel(item.request_basis),
                     urgency: getUrgencyLabel(item),
                     contactPerson: item.contact_person || "-",
                     decision: item.decision || "-",
@@ -1280,9 +1304,7 @@ ${photoBlock}
                                         onClick={() => openDecisionModal(item)}
                                     >
                                         <td>
-                                            {item._id
-                                                ? String(item._id).slice(-6)
-                                                : "-"}
+                                            {getRequestNumberLabel(item)}
                                         </td>
                                         <td>
                                             {item.createdAt
@@ -1495,9 +1517,7 @@ ${photoBlock}
                                     </p>
                                     <span className="tag is-info">
                                         в„–{" "}
-                                        {item._id
-                                            ? String(item._id).slice(-6)
-                                            : "-"}
+                                        {getRequestNumberLabel(item)}
                                     </span>
                                     <span className="tag is-light">
                                         {item.ksa_number ||
@@ -1679,11 +1699,7 @@ ${photoBlock}
                                         style={{ marginLeft: 4 }}
                                     >
                                         №{" "}
-                                        {selectedZayavka._id
-                                            ? String(selectedZayavka._id).slice(
-                                                  -6,
-                                              )
-                                            : "-"}
+                                        {getRequestNumberLabel(selectedZayavka)}
                                     </span>
                                 </p>
                                 <p className="mb-2">
@@ -1894,6 +1910,12 @@ ${photoBlock}
                                 <p>
                                     <strong>Серийный номер:</strong>{" "}
                                     {detailsZayavka.device_serial || "-"}
+                                </p>
+                                <p>
+                                    <strong>Основание заявки:</strong>{" "}
+                                    {getRequestBasisLabel(
+                                        detailsZayavka.request_basis,
+                                    )}
                                 </p>
                                 <p>
                                     <strong>Срочность:</strong>{" "}
@@ -2114,6 +2136,31 @@ ${photoBlock}
                             </div>
                         </div>
                         <div className="field">
+                            <label className="label">Основание заявки</label>
+                            <div className="control">
+                                <div className="select is-fullwidth">
+                                    <select
+                                        value={editForm.request_basis}
+                                        onChange={(e) =>
+                                            setEditForm((prev) => ({
+                                                ...prev,
+                                                request_basis: e.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="">
+                                            Выбрать основание заявки
+                                        </option>
+                                        {REQUEST_BASIS_OPTIONS.map((item) => (
+                                            <option key={item} value={item}>
+                                                {item}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="field">
                             <label className="label">Срочность</label>
                             <div className="control">
                                 <div className="select is-fullwidth">
@@ -2196,3 +2243,5 @@ ${photoBlock}
         </section>
     );
 }
+
+// FIXME: - переделать модалку решения 1 ремонт 2 замена 3 консульатция и в зависимости от выбора показывать либо поле для ввода решения, либо поле для выбора консультации, либо показать поля для выбора устройства для замены (для ремонта) а также если выбрано ремонт сделать страницу движение техники и добавлять туда в таблицу данные

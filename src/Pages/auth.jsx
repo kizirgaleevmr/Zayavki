@@ -29,8 +29,8 @@ export default function FormAuth() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    login,
-                    password,
+                    login: login.trim(),
+                    password: password.trim(),
                 }),
             });
 
@@ -52,25 +52,37 @@ export default function FormAuth() {
         <section className="auth">
             <div className="auth-shell">
                 <div className="auth-copy">
-                    <p className="auth-badge">SERVICE DESK</p>
+                    <p className="auth-badge">БТИ SERVICE DESK</p>
                     <h1 className="auth-title">Авторизация</h1>
                     <p className="auth-subtitle">
                         Войдите в систему, чтобы создавать, отслеживать и
                         обрабатывать заявки.
                     </p>
+                    <p className="auth-copyright">
+                        Все права защищены. MKR &copy; 2026.
+                    </p>
                 </div>
 
-                <form className="form-control box auth-form" onSubmit={submitClick}>
+                <form
+                    className="form-control box auth-form"
+                    onSubmit={submitClick}
+                >
                     <label className="label auth-form-title">
                         Авторизуйтесь
                     </label>
 
                     <div className="field auth-field">
-                        <label className="label auth-field-label" htmlFor="login">
+                        <label
+                            className="label auth-field-label"
+                            htmlFor="login"
+                        >
                             Логин
                         </label>
                         <p className="control">
-                            <span className="auth-field-icon" aria-hidden="true">
+                            <span
+                                className="auth-field-icon"
+                                aria-hidden="true"
+                            >
                                 @
                             </span>
                             <input
@@ -88,11 +100,17 @@ export default function FormAuth() {
                     </div>
 
                     <div className="field auth-field">
-                        <label className="label auth-field-label" htmlFor="password">
+                        <label
+                            className="label auth-field-label"
+                            htmlFor="password"
+                        >
                             Пароль
                         </label>
                         <p className="control">
-                            <span className="auth-field-icon" aria-hidden="true">
+                            <span
+                                className="auth-field-icon"
+                                aria-hidden="true"
+                            >
                                 *
                             </span>
                             <input
@@ -110,7 +128,9 @@ export default function FormAuth() {
                     </div>
 
                     {error ? (
-                        <p className="help is-danger mb-3 auth-error">{error}</p>
+                        <p className="help is-danger mb-3 auth-error">
+                            {error}
+                        </p>
                     ) : null}
 
                     <div className="field auth-actions">

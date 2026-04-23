@@ -17,6 +17,10 @@ const DEFAULT_DB_NAME = "zayzvki";
 const MONGO_URI_RAW =
     process.env.ATLAS_URI || "mongodb://127.0.0.1:27017/zayzvki";
 const FALLBACK_LOCAL_URI = "mongodb://127.0.0.1:27017/zayzvki";
+const MONGO_CONNECT_OPTIONS = {
+    serverSelectionTimeoutMS: 5000,
+};
+const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
 
 function ensureMongoDbName(uri, dbName) {
     if (/^mongodb(\+srv)?:\/\/[^/]+\/[^?]+/.test(uri)) {
@@ -37,10 +41,8 @@ const allowedOrigins = rawClientOrigin
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-for (const devOrigin of ["http://localhost:5173", "http://127.0.0.1:5173"]) {
-    if (!allowedOrigins.includes(devOrigin)) {
-        allowedOrigins.push(devOrigin);
-    }
+function isAllowedDevOrigin(origin) {
+    return /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
 }
 
 app.use(
@@ -49,7 +51,8 @@ app.use(
             if (!origin) return callback(null, true);
             if (
                 allowedOrigins.length === 0 ||
-                allowedOrigins.includes(origin)
+                allowedOrigins.includes(origin) ||
+                isAllowedDevOrigin(origin)
             ) {
                 return callback(null, true);
             }
@@ -133,6 +136,7 @@ const deviceItemScheme = new Schema(
 
 const zayavkaScheme = new Schema(
     {
+        request_number: { type: String, required: true, unique: true },
         region_id: { type: String, required: true },
         region_code: { type: String },
         ksa_id: { type: String, required: true },
@@ -140,6 +144,11 @@ const zayavkaScheme = new Schema(
         device_type: { type: String, required: true },
         device_name: { type: String, required: true },
         device_serial: { type: String, required: true },
+        request_basis: {
+            type: String,
+            enum: REQUEST_BASIS_OPTIONS,
+            required: true,
+        },
         device_issue: { type: String, required: true },
         contact_person: { type: String, required: true },
         urgency: {
@@ -177,6 +186,33 @@ const DeviceItem = mongoose.model(
     "oborudovanie",
 );
 const Zayavka = mongoose.model("zayavka", zayavkaScheme);
+
+function formatRequestNumber(date, sequenceNumber) {
+    const valueDate = date instanceof Date ? date : new Date(date);
+    const year = valueDate.getFullYear();
+    const month = String(valueDate.getMonth() + 1).padStart(2, "0");
+    const day = String(valueDate.getDate()).padStart(2, "0");
+    const sequence = String(sequenceNumber).padStart(6, "0");
+
+    return `${year}${month}${day}${sequence}`;
+}
+
+async function getZayavkiCountSafe() {
+    const fromModel = await Zayavka.countDocuments({});
+    if (fromModel > 0) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
+
+    for (const collectionName of candidates) {
+        const count = await db.collection(collectionName).countDocuments({});
+        if (count > 0) {
+            return count;
+        }
+    }
+
+    return 0;
+}
 
 async function fetchRegionsSafe() {
     const regions = await Region.find({});
@@ -325,6 +361,15 @@ function normalizeUrgency(value) {
     return normalized === "urgent" ? "urgent" : "not_urgent";
 }
 
+function normalizeRequestBasis(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    const match = REQUEST_BASIS_OPTIONS.find(
+        (item) => item.toLowerCase() === normalized,
+    );
+
+    return match || "";
+}
+
 function getCreatedByValue(item) {
     return item?.created_by || item?.createdBy || item?.author || "";
 }
@@ -362,8 +407,10 @@ function matchesZayavkaSearch(item, search) {
     if (!normalizedSearch) return true;
 
     return [
+        item.request_number,
         item.device_serial,
         item.device_name,
+        item.request_basis,
         item.device_issue,
         item.contact_person,
         item.ksa_id,
@@ -547,6 +594,16 @@ app.get("/auth/me", authMiddleware, async (req, res) => {
     });
 });
 
+app.use((req, res, next) => {
+    if (mongoose.connection.readyState === 1) {
+        return next();
+    }
+
+    return res.status(503).json({
+        message: "База данных временно недоступна",
+    });
+});
+
 app.get("/region", authMiddleware, async (req, res) => {
     const region = await fetchRegionsSafe();
     res.send(region);
@@ -583,6 +640,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             device_type,
             device_name,
             device_serial,
+            request_basis,
             device_issue,
             contact_person,
             urgency,
@@ -596,6 +654,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             !device_type ||
             !device_name ||
             !device_serial ||
+            !normalizeRequestBasis(request_basis) ||
             !device_issue ||
             !contact_person
         ) {
@@ -604,7 +663,12 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             });
         }
 
+        const now = new Date();
+        const totalZayavki = await getZayavkiCountSafe();
+        const requestNumber = formatRequestNumber(now, totalZayavki + 1);
+
         const created = await Zayavka.create({
+            request_number: requestNumber,
             region_id,
             region_code: region_code || "",
             ksa_id,
@@ -612,6 +676,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             device_type,
             device_name,
             device_serial,
+            request_basis: normalizeRequestBasis(request_basis),
             device_issue,
             contact_person,
             urgency: normalizeUrgency(urgency),
@@ -622,6 +687,7 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
         return res.status(201).json({
             message: "Заявка сохранена",
             id: created._id,
+            request_number: created.request_number,
         });
     } catch (error) {
         console.error("[POST /zayavki] error:", error);
@@ -845,6 +911,7 @@ app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
             device_type,
             device_name,
             device_serial,
+            request_basis,
             device_issue,
             contact_person,
             urgency,
@@ -855,6 +922,7 @@ app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
             !String(device_type || "").trim() ||
             !String(device_name || "").trim() ||
             !String(device_serial || "").trim() ||
+            !normalizeRequestBasis(request_basis) ||
             !String(device_issue || "").trim() ||
             !String(contact_person || "").trim()
         ) {
@@ -868,6 +936,7 @@ app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
             device_type: String(device_type).trim(),
             device_name: String(device_name).trim(),
             device_serial: String(device_serial).trim(),
+            request_basis: normalizeRequestBasis(request_basis),
             device_issue: String(device_issue).trim(),
             contact_person: String(contact_person).trim(),
             urgency: normalizeUrgency(urgency),
@@ -1001,26 +1070,33 @@ app.get("/ksa", authMiddleware, async (req, res) => {
 });
 
 async function main() {
+    app.listen(PORT, () => {
+        console.log(`Сервер запущен на порту ${PORT}`);
+    });
+
     try {
-        try {
-            await mongoose.connect(MONGO_URI);
-        } catch (primaryError) {
-            console.error(
-                "[Mongo] primary connect failed:",
-                primaryError.message,
-            );
-            if (MONGO_URI !== FALLBACK_LOCAL_URI) {
-                console.log("[Mongo] trying fallback local uri...");
-                await mongoose.connect(FALLBACK_LOCAL_URI);
-            } else {
-                throw primaryError;
-            }
+        await mongoose.connect(MONGO_URI, MONGO_CONNECT_OPTIONS);
+        console.log("[Mongo] connected");
+    } catch (primaryError) {
+        console.error(
+            "[Mongo] primary connect failed:",
+            primaryError.message,
+        );
+
+        if (MONGO_URI === FALLBACK_LOCAL_URI) {
+            return;
         }
 
-        app.listen(PORT);
-        console.log(`Сервер запущен на порту ${PORT}`);
-    } catch (err) {
-        console.log(err);
+        try {
+            console.log("[Mongo] trying fallback local uri...");
+            await mongoose.connect(FALLBACK_LOCAL_URI, MONGO_CONNECT_OPTIONS);
+            console.log("[Mongo] connected to fallback local uri");
+        } catch (fallbackError) {
+            console.error(
+                "[Mongo] fallback connect failed:",
+                fallbackError.message,
+            );
+        }
     }
 }
 
