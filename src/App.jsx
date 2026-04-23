@@ -50,7 +50,19 @@ function App() {
                                 )}
                             </NavLink>
                         </div>
-
+                        <div className="navbar-item">
+                            <NavLink to="/move-ts">
+                                {({ isActive }) => (
+                                    <span
+                                        className={
+                                            isActive ? "active" : "is-white"
+                                        }
+                                    >
+                                        Движение техники
+                                    </span>
+                                )}
+                            </NavLink>
+                        </div>
                         <div className="navbar-item">
                             <NavLink to="/consultations">
                                 {({ isActive }) => (
@@ -77,19 +89,7 @@ function App() {
                                 )}
                             </NavLink>
                         </div>
-                        <div className="navbar-item">
-                            <NavLink to="/move-ts">
-                                {({ isActive }) => (
-                                    <span
-                                        className={
-                                            isActive ? "active" : "is-white"
-                                        }
-                                    >
-                                        Движение техники
-                                    </span>
-                                )}
-                            </NavLink>
-                        </div>
+
                         <div className="navbar-item">
                             <NavLink to="/knowledgeBase">
                                 {({ isActive }) => (

@@ -26,6 +26,7 @@ const DECISION_KIND_OPTIONS = [
     "repair_on_site",
     "replacement",
 ];
+const MOVE_TS_ACT_TYPE_OPTIONS = ["expense", "income"];
 
 function ensureMongoDbName(uri, dbName) {
     if (/^mongodb(\+srv)?:\/\/[^/]+\/[^?]+/.test(uri)) {
@@ -143,6 +144,11 @@ const moveTsScheme = new Schema(
     {
         request_number: { type: String, required: true },
         act_number: { type: String, default: "" },
+        act_type: {
+            type: String,
+            enum: [...MOVE_TS_ACT_TYPE_OPTIONS, ""],
+            default: "",
+        },
         move_date: { type: Date, default: Date.now },
         status: { type: String, default: "на отправку" },
         delivery_method: { type: String, default: "" },
@@ -403,6 +409,334 @@ async function fetchMoveTsSafe() {
     return [];
 }
 
+function buildMoveTsIdQuery(id) {
+    const normalizedId = String(id || "").trim();
+    if (!normalizedId) return null;
+
+    if (mongoose.Types.ObjectId.isValid(normalizedId)) {
+        return { _id: new mongoose.Types.ObjectId(normalizedId) };
+    }
+
+    return { _id: normalizedId };
+}
+
+function normalizeMoveTsString(value) {
+    return String(value || "").trim();
+}
+
+function normalizeMoveTsActType(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+
+    if (
+        normalized === "income" ||
+        normalized === "приход" ||
+        normalized === "п" ||
+        normalized === "incoming"
+    ) {
+        return "income";
+    }
+
+    if (
+        normalized === "expense" ||
+        normalized === "расход" ||
+        normalized === "р" ||
+        normalized === "outgoing"
+    ) {
+        return "expense";
+    }
+
+    return "";
+}
+
+function inferMoveTsActTypeFromLocation(fromLocation) {
+    const normalizedLocation = normalizeMoveTsString(fromLocation).toLowerCase();
+    if (!normalizedLocation) return "";
+
+    return normalizedLocation === "сц бти" ? "expense" : "income";
+}
+
+function parseMoveTsActNumber(value) {
+    const normalized = normalizeMoveTsString(value);
+    const match = normalized.match(/^([^/]+)\/(\d+)-([РП])-([0-9]{2})$/);
+
+    if (!match) return null;
+
+    return {
+        regionNumber: match[1],
+        sequenceNumber: Number(match[2]),
+        letter: match[3],
+        yearShort: match[4],
+        actType: match[3] === "П" ? "income" : "expense",
+    };
+}
+
+function getMoveTsActLetter(actType) {
+    return normalizeMoveTsActType(actType) === "income" ? "П" : "Р";
+}
+
+function normalizeMoveTsActAssignmentMode(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+
+    if (normalized === "new") return "new";
+    if (normalized === "existing") return "existing";
+    if (normalized === "manual") return "manual";
+
+    return "";
+}
+
+function normalizeMoveTsDate(value, fallbackValue) {
+    if (!value) return fallbackValue;
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return null;
+    }
+
+    return parsed;
+}
+
+function normalizeMoveTsQuantity(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
+    }
+
+    return Math.round(parsed);
+}
+
+async function getRegionNumberByRequestNumberSafe(requestNumber) {
+    const normalizedRequestNumber = normalizeMoveTsString(requestNumber);
+    if (!normalizedRequestNumber) return "";
+
+    const zayavki = await fetchZayavkiSafe();
+    const zayavka = zayavki.find(
+        (item) =>
+            normalizeMoveTsString(item?.request_number) === normalizedRequestNumber,
+    );
+
+    const directRegionNumber =
+        normalizeMoveTsString(zayavka?.region_code) ||
+        normalizeMoveTsString(zayavka?.reg);
+    if (directRegionNumber) {
+        return directRegionNumber;
+    }
+
+    const normalizedRegionId = normalizeMoveTsString(
+        zayavka?.region_id || zayavka?.id_reg,
+    );
+    if (!normalizedRegionId) return "";
+
+    const regions = await fetchRegionsSafe();
+    const region = regions.find(
+        (item) =>
+            normalizeMoveTsString(item?.id_reg) === normalizedRegionId ||
+            normalizeMoveTsString(item?.reg) === normalizedRegionId,
+    );
+
+    return normalizeMoveTsString(region?.reg);
+}
+
+async function generateMoveTsActNumberSafe({
+    requestNumber,
+    actType,
+    moveDate,
+}) {
+    const normalizedActType = normalizeMoveTsActType(actType);
+    if (!normalizedActType) {
+        throw new Error("Не указан тип акта");
+    }
+
+    const regionNumber = await getRegionNumberByRequestNumberSafe(requestNumber);
+    if (!regionNumber) {
+        throw new Error("Не удалось определить номер региона для акта");
+    }
+
+    const actDate = normalizeMoveTsDate(moveDate, new Date()) || new Date();
+    const yearShort = String(actDate.getFullYear()).slice(-2);
+    const existingItems = await fetchMoveTsSafe();
+
+    const maxSequence = existingItems.reduce((maxValue, item) => {
+        const parsedActNumber = parseMoveTsActNumber(item?.act_number);
+        if (!parsedActNumber) return maxValue;
+
+        if (
+            parsedActNumber.regionNumber !== regionNumber ||
+            parsedActNumber.actType !== normalizedActType ||
+            parsedActNumber.yearShort !== yearShort
+        ) {
+            return maxValue;
+        }
+
+        return Math.max(maxValue, parsedActNumber.sequenceNumber || 0);
+    }, 0);
+
+    return `${regionNumber}/${maxSequence + 1}-${getMoveTsActLetter(
+        normalizedActType,
+    )}-${yearShort}`;
+}
+
+async function fetchMoveTsByIdSafe(id) {
+    const query = buildMoveTsIdQuery(id);
+    if (!query) return null;
+
+    const fromModel = await MoveTs.findOne(query).lean();
+    if (fromModel) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["move_ts", "movee_ts"];
+
+    for (const collectionName of candidates) {
+        const item = await db.collection(collectionName).findOne(query);
+        if (item) return item;
+    }
+
+    return null;
+}
+
+async function buildMoveTsUpdatePayload(body = {}, currentItem = null) {
+    const moveDate = normalizeMoveTsDate(body.move_date, null);
+    const quantity = normalizeMoveTsQuantity(body.quantity);
+    const assignmentMode = normalizeMoveTsActAssignmentMode(
+        body.act_assignment_mode,
+    );
+    const manualActNumber = normalizeMoveTsString(body.act_number);
+    const existingActNumber = normalizeMoveTsString(body.existing_act_number);
+    const parsedManualActNumber = parseMoveTsActNumber(manualActNumber);
+    const parsedExistingActNumber = parseMoveTsActNumber(existingActNumber);
+    let actType =
+        normalizeMoveTsActType(body.act_type) ||
+        parsedExistingActNumber?.actType ||
+        parsedManualActNumber?.actType ||
+        normalizeMoveTsActType(currentItem?.act_type) ||
+        parseMoveTsActNumber(currentItem?.act_number)?.actType ||
+        inferMoveTsActTypeFromLocation(body.from_location);
+    let actNumber = manualActNumber;
+
+    if (!normalizeMoveTsString(body.request_number)) {
+        return {
+            error: "Не указан номер заявки",
+        };
+    }
+
+    if (!moveDate) {
+        return {
+            error: "Не указана корректная дата движения",
+        };
+    }
+
+    if (!quantity) {
+        return {
+            error: "Количество должно быть больше нуля",
+        };
+    }
+
+    if (assignmentMode === "existing") {
+        if (!existingActNumber) {
+            return {
+                error: "Не выбран существующий акт",
+            };
+        }
+
+        actNumber = existingActNumber;
+        actType = parsedExistingActNumber?.actType || actType;
+    }
+
+    if (assignmentMode === "new") {
+        if (!actType) {
+            return {
+                error: "Не выбран тип акта",
+            };
+        }
+
+        try {
+            actNumber = await generateMoveTsActNumberSafe({
+                requestNumber: body.request_number,
+                actType,
+                moveDate,
+            });
+        } catch (error) {
+            return {
+                error:
+                    error?.message ||
+                    "Не удалось сформировать номер акта",
+            };
+        }
+    }
+
+    if (assignmentMode === "manual" && manualActNumber) {
+        actType = parsedManualActNumber?.actType || actType;
+    }
+
+    if (!assignmentMode && !manualActNumber) {
+        actNumber = "";
+    }
+
+    return {
+        payload: {
+            request_number: normalizeMoveTsString(body.request_number),
+            act_number: actNumber,
+            act_type: actType,
+            move_date: moveDate,
+            status: normalizeMoveTsString(body.status),
+            delivery_method: normalizeMoveTsString(body.delivery_method),
+            device_type: normalizeMoveTsString(body.device_type),
+            device_name: normalizeMoveTsString(body.device_name),
+            device_serial: normalizeMoveTsString(body.device_serial),
+            inv_number: normalizeMoveTsString(body.inv_number),
+            from_location: normalizeMoveTsString(body.from_location),
+            to_location: normalizeMoveTsString(body.to_location),
+            quantity,
+        },
+    };
+}
+
+async function updateMoveTsByIdSafe(id, payload) {
+    const query = buildMoveTsIdQuery(id);
+    if (!query) return null;
+
+    const fromModel = await MoveTs.findOneAndUpdate(query, payload, {
+        new: true,
+        runValidators: true,
+    }).lean();
+    if (fromModel) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["move_ts", "movee_ts"];
+
+    for (const collectionName of candidates) {
+        const collection = db.collection(collectionName);
+        const updateResult = await collection.updateOne(query, {
+            $set: payload,
+        });
+
+        if (updateResult.matchedCount > 0) {
+            return collection.findOne(query);
+        }
+    }
+
+    return null;
+}
+
+async function deleteMoveTsByIdSafe(id) {
+    const query = buildMoveTsIdQuery(id);
+    if (!query) return null;
+
+    const fromModel = await MoveTs.findOneAndDelete(query).lean();
+    if (fromModel) return fromModel;
+
+    const db = mongoose.connection.db;
+    const candidates = ["move_ts", "movee_ts"];
+
+    for (const collectionName of candidates) {
+        const deleted = await db.collection(collectionName).findOneAndDelete(query);
+        if (deleted) {
+            return deleted;
+        }
+    }
+
+    return null;
+}
+
 async function fetchZayavkiSafe() {
     const fromModel = await Zayavka.find({}).sort({ createdAt: -1 }).lean();
     if (fromModel.length > 0) return fromModel;
@@ -495,6 +829,7 @@ async function createMoveTsForZayavka({
     return MoveTs.create({
         request_number: String(requestNumber || "").trim(),
         act_number: "",
+        act_type: "expense",
         move_date: new Date(),
         status: "на отправку",
         delivery_method: "",
@@ -527,6 +862,7 @@ async function upsertMoveTsForReplacementDecision({
         {
             $set: {
                 act_number: "",
+                act_type: "expense",
                 move_date: new Date(),
                 status: "на отправку",
                 delivery_method: "",
@@ -568,6 +904,7 @@ async function upsertMoveTsForPickupDecision({
         {
             $set: {
                 act_number: "",
+                act_type: "income",
                 move_date: new Date(),
                 status: "на забор",
                 delivery_method: "",
@@ -856,6 +1193,97 @@ app.get("/move-ts", authMiddleware, async (req, res) => {
         console.error("[GET /move-ts] error:", error);
         return res.status(500).json({
             message: "Ошибка получения движения техники",
+        });
+    }
+});
+
+app.get("/move-ts/act-preview", authMiddleware, async (req, res) => {
+    try {
+        const requestNumber = normalizeMoveTsString(req.query.requestNumber);
+        const actType = normalizeMoveTsActType(req.query.actType);
+        const moveDate =
+            normalizeMoveTsDate(req.query.moveDate, null) || new Date();
+
+        if (!requestNumber) {
+            return res.status(400).json({
+                message: "Не указан номер заявки",
+            });
+        }
+
+        if (!actType) {
+            return res.status(400).json({
+                message: "Не указан тип акта",
+            });
+        }
+
+        const actNumber = await generateMoveTsActNumberSafe({
+            requestNumber,
+            actType,
+            moveDate,
+        });
+
+        return res.status(200).json({
+            act_number: actNumber,
+            act_type: actType,
+        });
+    } catch (error) {
+        console.error("[GET /move-ts/act-preview] error:", error);
+        return res.status(500).json({
+            message: "Ошибка формирования номера акта",
+        });
+    }
+});
+
+app.patch("/move-ts/:id", authMiddleware, async (req, res) => {
+    try {
+        const currentItem = await fetchMoveTsByIdSafe(req.params.id);
+        if (!currentItem) {
+            return res.status(404).json({
+                message: "Запись движения техники не найдена",
+            });
+        }
+
+        const { error, payload } = await buildMoveTsUpdatePayload(
+            req.body,
+            currentItem,
+        );
+        if (error) {
+            return res.status(400).json({ message: error });
+        }
+
+        const updated = await updateMoveTsByIdSafe(req.params.id, payload);
+        if (!updated) {
+            return res.status(404).json({
+                message: "Запись движения техники не найдена",
+            });
+        }
+
+        return res.status(200).json(updated);
+    } catch (error) {
+        console.error("[PATCH /move-ts/:id] error:", error);
+        return res.status(500).json({
+            message: "Ошибка обновления движения техники",
+        });
+    }
+});
+
+app.delete("/move-ts/:id", authMiddleware, async (req, res) => {
+    try {
+        const deleted = await deleteMoveTsByIdSafe(req.params.id);
+        if (!deleted) {
+            return res.status(404).json({
+                message: "Запись движения техники не найдена",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            deleted_id: deleted._id || req.params.id,
+        });
+    } catch (error) {
+        console.error("[DELETE /move-ts/:id] error:", error);
+        return res.status(500).json({
+            message: "Ошибка удаления движения техники",
         });
     }
 });
