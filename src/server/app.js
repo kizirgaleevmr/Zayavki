@@ -857,7 +857,7 @@ async function getKsaNumberSafe(ksaId, fallbackNumber = "") {
     );
 }
 
-async function createMoveTsForZayavka({
+async function upsertMoveTsForSupplementDecision({
     requestNumber,
     ksaId,
     ksaNumber,
@@ -875,23 +875,35 @@ async function createMoveTsForZayavka({
         getKsaNumberSafe(ksaId, ksaNumber),
     ]);
 
-    return MoveTs.create({
-        request_number: String(requestNumber || "").trim(),
-        act_number: "",
-        act_type: "expense",
-        move_date: new Date(),
-        status: "на отправку",
-        delivery_method: "",
-        request_basis: normalizeRequestBasis(requestBasis),
-        note: "-",
-        device_type: String(deviceType || "").trim(),
-        device_name: String(deviceName || "").trim(),
-        device_serial: String(deviceSerial || "").trim(),
-        inv_number: String(deviceItem?.inv_number || "").trim(),
-        from_location: "СЦ БТИ",
-        to_location: destinationKsaNumber,
-        quantity: 1,
-    });
+    return MoveTs.findOneAndUpdate(
+        {
+            request_number: String(requestNumber || "").trim(),
+            status: "на отправку",
+        },
+        {
+            $set: {
+                act_number: "",
+                act_type: "expense",
+                move_date: new Date(),
+                status: "на отправку",
+                delivery_method: "",
+                request_basis: normalizeRequestBasis(requestBasis),
+                note: "-",
+                device_type: String(deviceType || "").trim(),
+                device_name: String(deviceName || "").trim(),
+                device_serial: String(deviceSerial || "").trim(),
+                inv_number: String(deviceItem?.inv_number || "").trim(),
+                from_location: "СЦ БТИ",
+                to_location: destinationKsaNumber,
+                quantity: 1,
+            },
+        },
+        {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+        },
+    );
 }
 
 async function upsertMoveTsForReplacementDecision({
@@ -1453,14 +1465,9 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             device_name,
             device_serial,
             request_basis: normalizedRequestBasis,
-            decision:
-                normalizedRequestBasis === "Дооснащение"
-                    ? "Дооснащение"
-                    : "",
-            decision_kind:
-                normalizedRequestBasis === "Дооснащение" ? "supplement" : "",
-            decision_date:
-                normalizedRequestBasis === "Дооснащение" ? now : null,
+            decision: "",
+            decision_kind: "",
+            decision_date: null,
             repair_description: "",
             replacement_device_type: "",
             replacement_device_name: "",
@@ -1471,16 +1478,6 @@ app.post("/zayavki", authMiddleware, async (req, res) => {
             urgency: normalizeUrgency(urgency),
             device_photo: device_photo || null,
             created_by: created_by || "-",
-        });
-
-        await createMoveTsForZayavka({
-            requestNumber,
-            ksaId: ksa_id,
-            ksaNumber: ksa_number,
-            deviceType: device_type,
-            deviceName: device_name,
-            deviceSerial: device_serial,
-            requestBasis: normalizedRequestBasis,
         });
 
         return res.status(201).json({
@@ -1889,7 +1886,17 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
             { new: true },
         ).lean();
 
-        if (nextDecisionKind === "replacement") {
+        if (requestBasis === "Дооснащение") {
+            await upsertMoveTsForSupplementDecision({
+                requestNumber: zayavka.request_number,
+                ksaId: zayavka.ksa_id,
+                ksaNumber: zayavka.ksa_number,
+                requestBasis,
+                deviceType: zayavka.device_type,
+                deviceName: zayavka.device_name,
+                deviceSerial: zayavka.device_serial,
+            });
+        } else if (nextDecisionKind === "replacement") {
             await Promise.all([
                 upsertMoveTsForReplacementDecision({
                     requestNumber: zayavka.request_number,
