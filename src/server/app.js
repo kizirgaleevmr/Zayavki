@@ -1085,6 +1085,60 @@ async function updateZayavkaSafe(id, updateData) {
     return { updated: false, source: "", doc: null };
 }
 
+async function updateZayavkaByRequestNumberSafe(requestNumber, updateData) {
+    const normalizedRequestNumber = String(requestNumber || "").trim();
+    if (!normalizedRequestNumber) {
+        return { updated: false, source: "", doc: null };
+    }
+
+    const updatedByModel = await Zayavka.findOneAndUpdate(
+        { request_number: normalizedRequestNumber },
+        { $set: updateData },
+        { new: true },
+    ).lean();
+    if (updatedByModel) {
+        return {
+            updated: true,
+            source: "model:zayavka",
+            doc: updatedByModel,
+        };
+    }
+
+    const db = mongoose.connection.db;
+    const collections = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
+
+    for (const collectionName of collections) {
+        const result = await db.collection(collectionName).findOneAndUpdate(
+            { request_number: normalizedRequestNumber },
+            { $set: updateData },
+            { returnDocument: "after" },
+        );
+        const updatedDoc = result?.value || result || null;
+        if (updatedDoc && updatedDoc._id) {
+            return {
+                updated: true,
+                source: `collection:${collectionName}`,
+                doc: updatedDoc,
+            };
+        }
+    }
+
+    return { updated: false, source: "", doc: null };
+}
+
+async function resetZayavkaDecisionByRequestNumberSafe(requestNumber) {
+    return updateZayavkaByRequestNumberSafe(requestNumber, {
+        decision: "",
+        decision_kind: "",
+        decision_date: null,
+        repair_description: "",
+        replacement_device_type: "",
+        replacement_device_name: "",
+        replacement_device_serial: "",
+        replacement_inv_number: "",
+    });
+}
+
 async function deleteZayavkaHandler(req, res) {
     try {
         const { id } = req.params;
@@ -1278,6 +1332,11 @@ app.delete("/move-ts/:id", authMiddleware, async (req, res) => {
             return res.status(404).json({
                 message: "Запись движения техники не найдена",
             });
+        }
+
+        const deletedRequestNumber = String(deleted.request_number || "").trim();
+        if (deletedRequestNumber) {
+            await resetZayavkaDecisionByRequestNumberSafe(deletedRequestNumber);
         }
 
         return res.status(200).json({
