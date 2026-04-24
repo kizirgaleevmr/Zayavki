@@ -178,6 +178,7 @@ function createEditForm(item = null) {
         move_date: formatDateTimeLocalValue(item?.move_date),
         status: item?.status || "",
         delivery_method: item?.delivery_method || "",
+        request_basis: item?.request_basis || "",
         note: item?.note || "-",
         device_type: item?.device_type || "",
         device_name: item?.device_name || "",
@@ -214,6 +215,7 @@ function createActForm(item = null) {
         existing_act_number: actNumber,
         move_date: formatDateTimeLocalValue(item?.move_date || new Date()),
         delivery_method: item?.delivery_method || "",
+        request_basis: item?.request_basis || "",
     };
 }
 
@@ -444,7 +446,7 @@ function buildExpenseActRowValues(item, index, requestMeta = {}) {
         item?.device_serial || "-",
         item?.from_location || "-",
         item?.to_location || "-",
-        requestMeta?.request_basis || "-",
+        item?.request_basis || requestMeta?.request_basis || "-",
         item?.request_number || "-",
         item?.note || "-",
     ];
@@ -495,7 +497,7 @@ function buildIncomeActItemXml(item, requestMeta = {}) {
         item?.device_serial || "-",
         item?.from_location || "-",
         item?.to_location || "-",
-        requestMeta?.request_basis || "-",
+        item?.request_basis || requestMeta?.request_basis || "-",
         item?.request_number || "-",
         item?.note || "-",
     ];
@@ -1027,10 +1029,31 @@ function compareActNumbers(left, right) {
     });
 }
 
+function getMoveTsSortValue(item, key) {
+    switch (key) {
+        case "move_date":
+            return new Date(item?.move_date || 0).getTime();
+        case "quantity":
+            return Number(item?.quantity || 0);
+        case "act_number":
+            return normalizeValue(item?.act_number);
+        default:
+            return normalizeValue(item?.[key]);
+    }
+}
+
+function getMoveTsInitialSortDirection(key) {
+    return key === "move_date" || key === "quantity" ? "desc" : "asc";
+}
+
 export default function MoveTs() {
     const apiUrl = getApiUrl();
     const requestMetaByNumberRef = useRef(new Map());
     const [items, setItems] = useState([]);
+    const [sortConfig, setSortConfig] = useState({
+        key: "move_date",
+        direction: "desc",
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [selectedItemId, setSelectedItemId] = useState("");
@@ -1140,6 +1163,37 @@ export default function MoveTs() {
 
         return Array.from(map.values()).sort(compareActNumbers);
     }, [items]);
+
+    const sortedItems = useMemo(() => {
+        const collator = new Intl.Collator("ru", {
+            numeric: true,
+            sensitivity: "base",
+        });
+        const directionFactor = sortConfig.direction === "desc" ? -1 : 1;
+
+        return [...items].sort((left, right) => {
+            if (sortConfig.key === "act_number") {
+                return compareActNumbers(left, right) * directionFactor;
+            }
+
+            const leftValue = getMoveTsSortValue(left, sortConfig.key);
+            const rightValue = getMoveTsSortValue(right, sortConfig.key);
+
+            if (
+                typeof leftValue === "number" &&
+                typeof rightValue === "number"
+            ) {
+                return (leftValue - rightValue) * directionFactor;
+            }
+
+            return (
+                collator.compare(
+                    String(leftValue || ""),
+                    String(rightValue || ""),
+                ) * directionFactor
+            );
+        });
+    }, [items, sortConfig]);
 
     const filteredActModalOptions = useMemo(() => {
         const currentActType = normalizeActType(actForm.act_type);
@@ -1302,6 +1356,30 @@ export default function MoveTs() {
 
             return nextForm;
         });
+    }
+
+    function handleSort(key) {
+        setSortConfig((prev) => {
+            if (prev.key === key) {
+                return {
+                    key,
+                    direction: prev.direction === "asc" ? "desc" : "asc",
+                };
+            }
+
+            return {
+                key,
+                direction: getMoveTsInitialSortDirection(key),
+            };
+        });
+    }
+
+    function getSortLabel(key, label) {
+        if (sortConfig.key !== key) {
+            return label;
+        }
+
+        return `${label} ${sortConfig.direction === "asc" ? "↑" : "↓"}`;
     }
 
     useEffect(() => {
@@ -1610,6 +1688,11 @@ export default function MoveTs() {
                         move_date: actForm.move_date,
                         status: selectedItem.status,
                         delivery_method: actForm.delivery_method,
+                        request_basis:
+                            actForm.request_basis ||
+                            selectedItem.request_basis ||
+                            "",
+                        note: selectedItem.note || "-",
                         device_type: selectedItem.device_type,
                         device_name: selectedItem.device_name,
                         device_serial: selectedItem.device_serial,
@@ -1675,23 +1758,194 @@ export default function MoveTs() {
                             <thead>
                                 <tr>
                                     <th>№</th>
-                                    <th>По какой заявке</th>
-                                    <th>Номер акта</th>
-                                    <th>Дата</th>
-                                    <th>Статус</th>
-                                    <th>Способ доставки</th>
-                                    <th>Примечание</th>
-                                    <th>Тип устройства</th>
-                                    <th>Наименование</th>
-                                    <th>Серийный номер</th>
-                                    <th>Инвентарный номер</th>
-                                    <th>Откуда</th>
-                                    <th>Куда</th>
-                                    <th>Количество</th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("request_number")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "request_number",
+                                                "По какой заявке",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("act_number")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "act_number",
+                                                "Номер акта",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() => handleSort("move_date")}
+                                            type="button"
+                                        >
+                                            {getSortLabel("move_date", "Дата")}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() => handleSort("status")}
+                                            type="button"
+                                        >
+                                            {getSortLabel("status", "Статус")}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("delivery_method")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "delivery_method",
+                                                "Способ доставки",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("request_basis")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "request_basis",
+                                                "Основание заявки",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() => handleSort("note")}
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "note",
+                                                "Примечание",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("device_type")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "device_type",
+                                                "Тип устройства",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("device_name")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "device_name",
+                                                "Наименование",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("device_serial")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "device_serial",
+                                                "Серийный номер",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("inv_number")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "inv_number",
+                                                "Инвентарный номер",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("from_location")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "from_location",
+                                                "Откуда",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("to_location")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "to_location",
+                                                "Куда",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="button is-white is-small px-0"
+                                            onClick={() =>
+                                                handleSort("quantity")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "quantity",
+                                                "Количество",
+                                            )}
+                                        </button>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {items.map((item, index) => (
+                                {sortedItems.map((item, index) => (
                                     <tr
                                         key={
                                             item._id ||
@@ -1711,13 +1965,13 @@ export default function MoveTs() {
                                         tabIndex={0}
                                         style={{ cursor: "pointer" }}
                                     >
-                                        {/* //FIXME: добавить основание */}
                                         <td>{index + 1}</td>
                                         <td>{item.request_number || "-"}</td>
                                         <td>{item.act_number || "-"}</td>
                                         <td>{formatDate(item.move_date)}</td>
                                         <td>{item.status || "-"}</td>
                                         <td>{item.delivery_method || "-"}</td>
+                                        <td>{item.request_basis || "-"}</td>
                                         <td>{item.note || "-"}</td>
                                         <td>{item.device_type || "-"}</td>
                                         <td>{item.device_name || "-"}</td>
@@ -1869,6 +2123,32 @@ export default function MoveTs() {
                                         </div>
                                         <div className="column is-6">
                                             <label className="label">
+                                                Основание заявки
+                                            </label>
+                                            <div className="select is-fullwidth">
+                                                <select
+                                                    name="request_basis"
+                                                    onChange={
+                                                        handleEditFieldChange
+                                                    }
+                                                    value={
+                                                        editForm.request_basis
+                                                    }
+                                                >
+                                                    <option value="">
+                                                        Не выбрано
+                                                    </option>
+                                                    <option value="Дооснащение">
+                                                        Дооснащение
+                                                    </option>
+                                                    <option value="Ремонт тс">
+                                                        Ремонт тс
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="column is-6">
+                                            <label className="label">
                                                 Примечание
                                             </label>
                                             <input
@@ -1983,6 +2263,13 @@ export default function MoveTs() {
                                                     Способ доставки:
                                                 </strong>{" "}
                                                 {selectedItem.delivery_method ||
+                                                    "-"}
+                                            </div>
+                                            <div className="column is-6">
+                                                <strong>
+                                                    Основание заявки:
+                                                </strong>{" "}
+                                                {selectedItem.request_basis ||
                                                     "-"}
                                             </div>
                                             <div className="column is-6">
@@ -2291,6 +2578,21 @@ export default function MoveTs() {
                                     className="input"
                                     readOnly
                                     value={selectedItem?.request_number || ""}
+                                />
+                            </div>
+
+                            <div className="column is-6">
+                                <label className="label">
+                                    Основание заявки
+                                </label>
+                                <input
+                                    className="input"
+                                    readOnly
+                                    value={
+                                        actForm.request_basis ||
+                                        selectedItem?.request_basis ||
+                                        ""
+                                    }
                                 />
                             </div>
 

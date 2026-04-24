@@ -152,6 +152,11 @@ const moveTsScheme = new Schema(
         move_date: { type: Date, default: Date.now },
         status: { type: String, default: "на отправку" },
         delivery_method: { type: String, default: "" },
+        request_basis: {
+            type: String,
+            enum: [...REQUEST_BASIS_OPTIONS, ""],
+            default: "",
+        },
         note: { type: String, default: "-" },
         device_type: { type: String, default: "" },
         device_name: { type: String, default: "" },
@@ -394,8 +399,12 @@ async function findDeviceItemBySerialSafe(serialNumber) {
 }
 
 async function fetchMoveTsSafe() {
-    const fromModel = await MoveTs.find({}).sort({ move_date: -1, createdAt: -1 }).lean();
-    if (fromModel.length > 0) return fromModel;
+    const fromModel = await MoveTs.find({})
+        .sort({ move_date: -1, createdAt: -1 })
+        .lean();
+    if (fromModel.length > 0) {
+        return enrichMoveTsItemsWithRequestBasis(fromModel);
+    }
 
     const db = mongoose.connection.db;
     const candidates = ["move_ts", "movee_ts"];
@@ -407,7 +416,7 @@ async function fetchMoveTsSafe() {
             .sort({ move_date: -1, createdAt: -1 })
             .toArray();
         if (docs.length > 0) {
-            return docs;
+            return enrichMoveTsItemsWithRequestBasis(docs);
         }
     }
 
@@ -427,6 +436,32 @@ function buildMoveTsIdQuery(id) {
 
 function normalizeMoveTsString(value) {
     return String(value || "").trim();
+}
+
+async function enrichMoveTsItemsWithRequestBasis(items = []) {
+    if (!Array.isArray(items) || items.length === 0) {
+        return [];
+    }
+
+    const requestBasisByNumber = new Map(
+        (await fetchZayavkiSafe()).map((item) => [
+            String(item?.request_number || "").trim(),
+            normalizeRequestBasis(item?.request_basis),
+        ]),
+    );
+
+    return items.map((item) => {
+        const requestNumber = String(item?.request_number || "").trim();
+        const requestBasis =
+            normalizeRequestBasis(item?.request_basis) ||
+            requestBasisByNumber.get(requestNumber) ||
+            "";
+
+        return {
+            ...item,
+            request_basis: requestBasis,
+        };
+    });
 }
 
 function normalizeMoveTsActType(value) {
@@ -601,6 +636,9 @@ async function fetchMoveTsByIdSafe(id) {
 async function buildMoveTsUpdatePayload(body = {}, currentItem = null) {
     const moveDate = normalizeMoveTsDate(body.move_date, null);
     const quantity = normalizeMoveTsQuantity(body.quantity);
+    const requestBasis =
+        normalizeRequestBasis(body.request_basis) ||
+        normalizeRequestBasis(currentItem?.request_basis);
     const note =
         normalizeMoveTsString(body.note) ||
         normalizeMoveTsString(currentItem?.note) ||
@@ -688,6 +726,7 @@ async function buildMoveTsUpdatePayload(body = {}, currentItem = null) {
             move_date: moveDate,
             status: normalizeMoveTsString(body.status),
             delivery_method: normalizeMoveTsString(body.delivery_method),
+            request_basis: requestBasis,
             note,
             device_type: normalizeMoveTsString(body.device_type),
             device_name: normalizeMoveTsString(body.device_name),
@@ -843,6 +882,7 @@ async function createMoveTsForZayavka({
         move_date: new Date(),
         status: "на отправку",
         delivery_method: "",
+        request_basis: normalizeRequestBasis(requestBasis),
         note: "-",
         device_type: String(deviceType || "").trim(),
         device_name: String(deviceName || "").trim(),
@@ -858,6 +898,7 @@ async function upsertMoveTsForReplacementDecision({
     requestNumber,
     ksaId,
     ksaNumber,
+    requestBasis,
     deviceType,
     deviceName,
     deviceSerial,
@@ -877,6 +918,7 @@ async function upsertMoveTsForReplacementDecision({
                 move_date: new Date(),
                 status: "на отправку",
                 delivery_method: "",
+                request_basis: normalizeRequestBasis(requestBasis),
                 note: "-",
                 device_type: String(deviceType || "").trim(),
                 device_name: String(deviceName || "").trim(),
@@ -899,6 +941,7 @@ async function upsertMoveTsForPickupDecision({
     requestNumber,
     ksaId,
     ksaNumber,
+    requestBasis,
     deviceType,
     deviceName,
     deviceSerial,
@@ -920,6 +963,7 @@ async function upsertMoveTsForPickupDecision({
                 move_date: new Date(),
                 status: "на забор",
                 delivery_method: "",
+                request_basis: normalizeRequestBasis(requestBasis),
                 note: "-",
                 device_type: String(deviceType || "").trim(),
                 device_name: String(deviceName || "").trim(),
@@ -1851,6 +1895,7 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
                     requestNumber: zayavka.request_number,
                     ksaId: zayavka.ksa_id,
                     ksaNumber: zayavka.ksa_number,
+                    requestBasis,
                     deviceType: nextReplacementDeviceType,
                     deviceName: nextReplacementDeviceName,
                     deviceSerial: nextReplacementDeviceSerial,
@@ -1860,6 +1905,7 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
                     requestNumber: zayavka.request_number,
                     ksaId: zayavka.ksa_id,
                     ksaNumber: zayavka.ksa_number,
+                    requestBasis,
                     deviceType: zayavka.device_type,
                     deviceName: zayavka.device_name,
                     deviceSerial: zayavka.device_serial,
