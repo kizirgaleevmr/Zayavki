@@ -45,7 +45,11 @@ function formatDateTimeLocalValue(value) {
 function normalizeActType(value) {
     const normalized = normalizeValue(value).toLowerCase();
 
-    if (normalized === "income" || normalized === "приход" || normalized === "п") {
+    if (
+        normalized === "income" ||
+        normalized === "приход" ||
+        normalized === "п"
+    ) {
         return "income";
     }
 
@@ -231,18 +235,30 @@ function buildExpenseActRowXml(item, index, requestMeta = {}) {
         item?.request_number || "-",
         requestMeta?.created_by || "-",
     ];
-    const widths = ["1101", "2887", "1994", "1994", "1995", "1995", "1995", "1995"];
+    const widths = [
+        "1101",
+        "2887",
+        "1994",
+        "1994",
+        "1995",
+        "1995",
+        "1995",
+        "1995",
+    ];
 
     return `
         <w:tr>
             ${values
-                .map((value, cellIndex) => buildWordCellXml(value, widths[cellIndex]))
+                .map((value, cellIndex) =>
+                    buildWordCellXml(value, widths[cellIndex]),
+                )
                 .join("")}
         </w:tr>
     `;
 }
 
 function buildIncomeActItemXml(item, requestMeta = {}) {
+    console.log(item);
     const parts = [
         item?.device_name || "-",
         item?.device_serial || "-",
@@ -311,7 +327,9 @@ function buildExpenseActDocumentXml(templateXml, payload) {
     const { actNumber, moveDate, items, requestMetaByNumber } = payload;
     const parser = new DOMParser();
     const xmlDocument = parser.parseFromString(templateXml, "application/xml");
-    const paragraphs = Array.from(xmlDocument.getElementsByTagNameNS(WORD_NS, "p"));
+    const paragraphs = Array.from(
+        xmlDocument.getElementsByTagNameNS(WORD_NS, "p"),
+    );
     const table = xmlDocument.getElementsByTagNameNS(WORD_NS, "tbl")[0];
 
     if (!table) {
@@ -328,7 +346,7 @@ function buildExpenseActDocumentXml(templateXml, payload) {
     if (!titleParagraph || !dateParagraph) {
         throw new Error("Не найдены ключевые поля в шаблоне Word");
     }
-
+    //Установка загаловка word номер акта исправить не устанавливается
     const titleReplacement = parseWordFragment(
         buildWordParagraphXml(`Акт № ${actNumber}`, {
             bold: true,
@@ -367,7 +385,10 @@ function buildExpenseActDocumentXml(templateXml, payload) {
         ),
     );
 
-    const replacementNodes = parseWordFragment(generatedRows.join(""), xmlDocument);
+    const replacementNodes = parseWordFragment(
+        generatedRows.join(""),
+        xmlDocument,
+    );
     replacementNodes.forEach((node) => {
         table.insertBefore(node, sampleRow);
     });
@@ -380,7 +401,9 @@ function buildIncomeActDocumentXml(templateXml, payload) {
     const { actNumber, moveDate, items, requestMetaByNumber } = payload;
     const parser = new DOMParser();
     const xmlDocument = parser.parseFromString(templateXml, "application/xml");
-    const paragraphs = Array.from(xmlDocument.getElementsByTagNameNS(WORD_NS, "p"));
+    const paragraphs = Array.from(
+        xmlDocument.getElementsByTagNameNS(WORD_NS, "p"),
+    );
 
     const titleParagraph = paragraphs.find((paragraph) =>
         paragraph.textContent.includes("АКТ"),
@@ -392,12 +415,16 @@ function buildIncomeActDocumentXml(templateXml, payload) {
         (paragraph) =>
             paragraph.getElementsByTagNameNS(WORD_NS, "numPr").length > 0,
     );
-    const footerParagraph = paragraphs.find(
-        (paragraph) =>
-            paragraph.textContent.trim().startsWith("Передал"),
+    const footerParagraph = paragraphs.find((paragraph) =>
+        paragraph.textContent.trim().startsWith("Передал"),
     );
 
-    if (!titleParagraph || !dateParagraph || !firstListParagraph || !footerParagraph) {
+    if (
+        !titleParagraph ||
+        !dateParagraph ||
+        !firstListParagraph ||
+        !footerParagraph
+    ) {
         throw new Error("Не найдены ключевые поля в шаблоне Word");
     }
 
@@ -434,7 +461,8 @@ function buildIncomeActDocumentXml(templateXml, payload) {
         .map((item) =>
             buildIncomeActItemXml(
                 item,
-                requestMetaByNumber.get(normalizeValue(item?.request_number)) || {},
+                requestMetaByNumber.get(normalizeValue(item?.request_number)) ||
+                    {},
             ),
         )
         .join("");
@@ -464,7 +492,9 @@ function buildActHtml(selectedItem, actItems) {
     const resolvedActType = getResolvedActType(selectedItem);
     const title = getActTypeLabel(resolvedActType);
     const normalizedItems =
-        Array.isArray(actItems) && actItems.length > 0 ? actItems : [selectedItem];
+        Array.isArray(actItems) && actItems.length > 0
+            ? actItems
+            : [selectedItem];
     const headerRows = [
         ["Номер акта", selectedItem?.act_number || "-"],
         ["Дата", formatDate(selectedItem?.move_date)],
@@ -761,7 +791,9 @@ export default function MoveTs() {
 
         return (
             items.find(
-                (item) => normalizeValue(item?._id) === normalizeValue(selectedItemId),
+                (item) =>
+                    normalizeValue(item?._id) ===
+                    normalizeValue(selectedItemId),
             ) || null
         );
     }, [items, selectedItemId]);
@@ -862,7 +894,8 @@ export default function MoveTs() {
 
                 if (
                     selectedExistingAct &&
-                    normalizeActType(selectedExistingAct.act_type) !== nextActType
+                    normalizeActType(selectedExistingAct.act_type) !==
+                        nextActType
                 ) {
                     nextForm.existing_act_number = "";
                 }
@@ -940,7 +973,8 @@ export default function MoveTs() {
                 if (!isCancelled) {
                     setActModalPreview("");
                     setActModalError(
-                        previewError.message || "Ошибка формирования номера акта",
+                        previewError.message ||
+                            "Ошибка формирования номера акта",
                     );
                 }
             } finally {
@@ -1020,9 +1054,7 @@ export default function MoveTs() {
             return;
         }
 
-        const isConfirmed = window.confirm(
-            "Удалить запись движения техники?",
-        );
+        const isConfirmed = window.confirm("Удалить запись движения техники?");
         if (!isConfirmed) {
             return;
         }
@@ -1064,7 +1096,8 @@ export default function MoveTs() {
         const actItems = normalizedActNumber
             ? sourceItems.filter(
                   (sourceItem) =>
-                      normalizeValue(sourceItem.act_number) === normalizedActNumber,
+                      normalizeValue(sourceItem.act_number) ===
+                      normalizedActNumber,
               )
             : [item];
 
@@ -1091,7 +1124,8 @@ export default function MoveTs() {
         const actItems = normalizedActNumber
             ? sourceItems.filter(
                   (sourceItem) =>
-                      normalizeValue(sourceItem.act_number) === normalizedActNumber,
+                      normalizeValue(sourceItem.act_number) ===
+                      normalizedActNumber,
               )
             : [item];
         const actType = getResolvedActType(item);
@@ -1126,10 +1160,7 @@ export default function MoveTs() {
         };
         const nextDocumentXml = (
             isIncomeAct ? buildIncomeActDocumentXml : buildExpenseActDocumentXml
-        )(
-            documentFile.asText(),
-            payload,
-        );
+        )(documentFile.asText(), payload);
 
         zip.file("word/document.xml", nextDocumentXml);
 
@@ -1139,10 +1170,11 @@ export default function MoveTs() {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         });
 
-        const safeActNumber = normalizeValue(item?.act_number).replaceAll("/", "-");
-        const fileName = `Akt_${
-            isIncomeAct ? "Prikhoda" : "Raskhoda"
-        }_${safeActNumber || "bez-nomera"}.docx`;
+        const safeActNumber = normalizeValue(item?.act_number).replaceAll(
+            "/",
+            "-",
+        );
+        const fileName = `Akt_${safeActNumber || "bez-nomera"}.docx`;
         const downloadUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
 
@@ -1156,7 +1188,9 @@ export default function MoveTs() {
 
     async function handleSaveAct(shouldPrint = false) {
         if (!selectedItem?._id) {
-            setActModalError("Не удалось определить запись для формирования акта");
+            setActModalError(
+                "Не удалось определить запись для формирования акта",
+            );
             return;
         }
 
@@ -1210,8 +1244,7 @@ export default function MoveTs() {
             const responseBody = await response.json().catch(() => null);
             if (!response.ok) {
                 throw new Error(
-                    responseBody?.message ||
-                        "Не удалось сохранить данные акта",
+                    responseBody?.message || "Не удалось сохранить данные акта",
                 );
             }
 
@@ -1293,6 +1326,7 @@ export default function MoveTs() {
                                         tabIndex={0}
                                         style={{ cursor: "pointer" }}
                                     >
+                                        {/* //FIXME: добавить основание */}
                                         <td>{index + 1}</td>
                                         <td>{item.request_number || "-"}</td>
                                         <td>{item.act_number || "-"}</td>
@@ -1320,7 +1354,10 @@ export default function MoveTs() {
                     onClick={closeModal}
                     aria-hidden="true"
                 />
-                <div className="modal-card" style={{ width: "min(960px, 96vw)" }}>
+                <div
+                    className="modal-card"
+                    style={{ width: "min(960px, 96vw)" }}
+                >
                     <header className="modal-card-head">
                         <div>
                             <p className="modal-card-title">Движение техники</p>
@@ -1354,7 +1391,9 @@ export default function MoveTs() {
                         {selectedItem ? (
                             <>
                                 <div className="box has-background-light mb-5">
-                                    <p className="heading mb-2">Реквизиты акта</p>
+                                    <p className="heading mb-2">
+                                        Реквизиты акта
+                                    </p>
                                     <div className="columns is-variable is-3 mb-0">
                                         <div className="column is-5">
                                             <p className="is-size-7 has-text-grey mb-1">
@@ -1362,7 +1401,9 @@ export default function MoveTs() {
                                             </p>
                                             <p
                                                 className="title is-4 mb-0"
-                                                style={{ wordBreak: "break-word" }}
+                                                style={{
+                                                    wordBreak: "break-word",
+                                                }}
                                             >
                                                 {selectedItem.act_number ||
                                                     "не задан"}
@@ -1385,7 +1426,9 @@ export default function MoveTs() {
                                                 Дата акта
                                             </p>
                                             <p className="subtitle is-6 mb-0">
-                                                {formatDate(selectedItem.move_date)}
+                                                {formatDate(
+                                                    selectedItem.move_date,
+                                                )}
                                             </p>
                                         </div>
                                     </div>
@@ -1405,7 +1448,9 @@ export default function MoveTs() {
                                             />
                                         </div>
                                         <div className="column is-6">
-                                            <label className="label">Дата</label>
+                                            <label className="label">
+                                                Дата
+                                            </label>
                                             <input
                                                 className="input"
                                                 name="move_date"
@@ -1415,7 +1460,9 @@ export default function MoveTs() {
                                             />
                                         </div>
                                         <div className="column is-6">
-                                            <label className="label">Статус</label>
+                                            <label className="label">
+                                                Статус
+                                            </label>
                                             <input
                                                 className="input"
                                                 name="status"
@@ -1479,7 +1526,9 @@ export default function MoveTs() {
                                             />
                                         </div>
                                         <div className="column is-6">
-                                            <label className="label">Откуда</label>
+                                            <label className="label">
+                                                Откуда
+                                            </label>
                                             <input
                                                 className="input"
                                                 name="from_location"
@@ -1488,7 +1537,9 @@ export default function MoveTs() {
                                             />
                                         </div>
                                         <div className="column is-6">
-                                            <label className="label">Куда</label>
+                                            <label className="label">
+                                                Куда
+                                            </label>
                                             <input
                                                 className="input"
                                                 name="to_location"
@@ -1514,44 +1565,59 @@ export default function MoveTs() {
                                     <div className="content">
                                         <div className="columns is-multiline">
                                             <div className="column is-6">
-                                                <strong>По какой заявке:</strong>{" "}
-                                                {selectedItem.request_number || "-"}
+                                                <strong>
+                                                    По какой заявке:
+                                                </strong>{" "}
+                                                {selectedItem.request_number ||
+                                                    "-"}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Дата:</strong>{" "}
-                                                {formatDate(selectedItem.move_date)}
+                                                {formatDate(
+                                                    selectedItem.move_date,
+                                                )}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Статус:</strong>{" "}
                                                 {selectedItem.status || "-"}
                                             </div>
                                             <div className="column is-6">
-                                                <strong>Способ доставки:</strong>{" "}
-                                                {selectedItem.delivery_method || "-"}
+                                                <strong>
+                                                    Способ доставки:
+                                                </strong>{" "}
+                                                {selectedItem.delivery_method ||
+                                                    "-"}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Тип устройства:</strong>{" "}
-                                                {selectedItem.device_type || "-"}
+                                                {selectedItem.device_type ||
+                                                    "-"}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Наименование:</strong>{" "}
-                                                {selectedItem.device_name || "-"}
+                                                {selectedItem.device_name ||
+                                                    "-"}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Серийный номер:</strong>{" "}
-                                                {selectedItem.device_serial || "-"}
+                                                {selectedItem.device_serial ||
+                                                    "-"}
                                             </div>
                                             <div className="column is-6">
-                                                <strong>Инвентарный номер:</strong>{" "}
+                                                <strong>
+                                                    Инвентарный номер:
+                                                </strong>{" "}
                                                 {selectedItem.inv_number || "-"}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Откуда:</strong>{" "}
-                                                {selectedItem.from_location || "-"}
+                                                {selectedItem.from_location ||
+                                                    "-"}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Куда:</strong>{" "}
-                                                {selectedItem.to_location || "-"}
+                                                {selectedItem.to_location ||
+                                                    "-"}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Количество:</strong>{" "}
@@ -1580,7 +1646,9 @@ export default function MoveTs() {
                                     <button
                                         className="button"
                                         onClick={() => {
-                                            setEditForm(createEditForm(selectedItem));
+                                            setEditForm(
+                                                createEditForm(selectedItem),
+                                            );
                                             setModalError("");
                                             setIsEditing(false);
                                         }}
@@ -1594,7 +1662,9 @@ export default function MoveTs() {
                                     <button
                                         className="button is-link"
                                         onClick={() => {
-                                            setEditForm(createEditForm(selectedItem));
+                                            setEditForm(
+                                                createEditForm(selectedItem),
+                                            );
                                             setModalError("");
                                             setIsEditing(true);
                                         }}
@@ -1638,13 +1708,18 @@ export default function MoveTs() {
                     onClick={closeActModal}
                     aria-hidden="true"
                 />
-                <div className="modal-card" style={{ width: "min(760px, 96vw)" }}>
+                <div
+                    className="modal-card"
+                    style={{ width: "min(760px, 96vw)" }}
+                >
                     <header className="modal-card-head">
                         <div>
-                            <p className="modal-card-title">Формирование акта</p>
+                            <p className="modal-card-title">
+                                Формирование акта
+                            </p>
                             <p className="is-size-7 has-text-grey mt-2">
-                                Номер формируется по шаблону:
-                                регион/порядковый номер-буква-год
+                                Номер формируется по шаблону: регион/порядковый
+                                номер-буква-год
                             </p>
                         </div>
                         <button
@@ -1675,7 +1750,8 @@ export default function MoveTs() {
                                     >
                                         {isActModalPreviewLoading
                                             ? "Формируется..."
-                                            : visibleActModalNumber || "не задан"}
+                                            : visibleActModalNumber ||
+                                              "не задан"}
                                     </p>
                                 </div>
                                 <div className="column is-3">
@@ -1691,7 +1767,9 @@ export default function MoveTs() {
                                         Дата акта
                                     </p>
                                     <p className="subtitle is-6 mb-0">
-                                        {formatDate(actForm.move_date || new Date())}
+                                        {formatDate(
+                                            actForm.move_date || new Date(),
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -1747,15 +1825,20 @@ export default function MoveTs() {
                                             onChange={handleActFieldChange}
                                             value={actForm.existing_act_number}
                                         >
-                                            <option value="">Выберите акт</option>
-                                            {filteredActModalOptions.map((item) => (
-                                                <option
-                                                    key={item.act_number}
-                                                    value={item.act_number}
-                                                >
-                                                    {item.act_number} ({item.count} ед.)
-                                                </option>
-                                            ))}
+                                            <option value="">
+                                                Выберите акт
+                                            </option>
+                                            {filteredActModalOptions.map(
+                                                (item) => (
+                                                    <option
+                                                        key={item.act_number}
+                                                        value={item.act_number}
+                                                    >
+                                                        {item.act_number} (
+                                                        {item.count} ед.)
+                                                    </option>
+                                                ),
+                                            )}
                                         </select>
                                     </div>
                                 ) : actForm.act_assignment_mode === "manual" ? (
@@ -1777,6 +1860,7 @@ export default function MoveTs() {
                                         readOnly
                                     />
                                 )}
+                                {/* исправить! */}
                                 <p className="help">
                                     Расход: 74/1-Р-26, приход: 56/1-П-26
                                 </p>
