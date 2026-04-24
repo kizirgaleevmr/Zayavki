@@ -4,19 +4,32 @@ import { fetchWithAuth } from "../utils/auth";
 import { getApiUrl } from "../utils/api";
 
 const WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
 const EXPENSE_ACT_TEMPLATE_URL = new URL(
     "../shablonAkty/Shablon_R.docx",
     import.meta.url,
 ).href;
 const INCOME_ACT_TEMPLATE_URL = new URL(
-    "../shablonAkty/shablon_P.docx",
+    "../shablonAkty/Shablon_P.docx",
     import.meta.url,
 ).href;
 
+/**
+ * Приводит значение к строке и удаляет пробелы по краям.
+ *
+ * @param {unknown} value Исходное значение.
+ * @returns {string} Нормализованная строка.
+ */
 function normalizeValue(value) {
     return String(value || "").trim();
 }
 
+/**
+ * Форматирует дату и время для отображения в интерфейсе.
+ *
+ * @param {string | number | Date | null | undefined} value Исходное значение даты.
+ * @returns {string} Локализованная дата или `-`, если значение некорректно.
+ */
 function formatDate(value) {
     if (!value) return "-";
 
@@ -28,6 +41,12 @@ function formatDate(value) {
     return parsed.toLocaleString("ru-RU");
 }
 
+/**
+ * Подготавливает значение даты для поля `datetime-local`.
+ *
+ * @param {string | number | Date | null | undefined} value Исходное значение даты.
+ * @returns {string} Дата в формате `YYYY-MM-DDTHH:mm` или пустая строка.
+ */
 function formatDateTimeLocalValue(value) {
     if (!value) return "";
 
@@ -42,6 +61,12 @@ function formatDateTimeLocalValue(value) {
         .slice(0, 16);
 }
 
+/**
+ * Нормализует тип акта к внутренним значениям страницы.
+ *
+ * @param {unknown} value Значение типа акта из формы или API.
+ * @returns {"income" | "expense" | ""} Нормализованный тип акта.
+ */
 function normalizeActType(value) {
     const normalized = normalizeValue(value).toLowerCase();
 
@@ -64,6 +89,12 @@ function normalizeActType(value) {
     return "";
 }
 
+/**
+ * Пытается определить тип акта по точке отправления.
+ *
+ * @param {unknown} fromLocation Значение поля `from_location`.
+ * @returns {"income" | "expense" | ""} Выведенный тип акта.
+ */
 function inferActTypeFromLocation(fromLocation) {
     const normalized = normalizeValue(fromLocation).toLowerCase();
     if (!normalized) return "";
@@ -71,6 +102,17 @@ function inferActTypeFromLocation(fromLocation) {
     return normalized === "сц бти" ? "expense" : "income";
 }
 
+/**
+ * Разбирает номер акта на составные части.
+ *
+ * @param {unknown} value Номер акта в шаблоне `регион/номер-буква-год`.
+ * @returns {{
+ *     regionNumber: string,
+ *     sequenceNumber: number,
+ *     yearShort: string,
+ *     actType: "income" | "expense",
+ * } | null} Разобранные части номера или `null`.
+ */
 function parseActNumber(value) {
     const normalized = normalizeValue(value);
     const match = normalized.match(/^([^/]+)\/(\d+)-([РП])-([0-9]{2})$/);
@@ -85,6 +127,12 @@ function parseActNumber(value) {
     };
 }
 
+/**
+ * Возвращает тип акта из карточки перемещения с несколькими fallback-источниками.
+ *
+ * @param {Record<string, any> | null} [item=null] Запись перемещения.
+ * @returns {"income" | "expense" | ""} Определённый тип акта.
+ */
 function getResolvedActType(item = null) {
     return (
         normalizeActType(item?.act_type) ||
@@ -93,18 +141,44 @@ function getResolvedActType(item = null) {
     );
 }
 
+/**
+ * Возвращает человекочитаемую подпись типа акта.
+ *
+ * @param {unknown} actType Тип акта.
+ * @returns {string} Локализованное название акта.
+ */
 function getActTypeLabel(actType) {
     return normalizeActType(actType) === "income"
         ? "Акт прихода"
         : "Акт расхода";
 }
 
+/**
+ * Создаёт начальное состояние формы редактирования перемещения.
+ *
+ * @param {Record<string, any> | null} [item=null] Запись перемещения.
+ * @returns {{
+ *     request_number: string,
+ *     move_date: string,
+ *     status: string,
+ *     delivery_method: string,
+ *     note: string,
+ *     device_type: string,
+ *     device_name: string,
+ *     device_serial: string,
+ *     inv_number: string,
+ *     from_location: string,
+ *     to_location: string,
+ *     quantity: string,
+ * }} Подготовленные значения формы.
+ */
 function createEditForm(item = null) {
     return {
         request_number: item?.request_number || "",
         move_date: formatDateTimeLocalValue(item?.move_date),
         status: item?.status || "",
         delivery_method: item?.delivery_method || "",
+        note: item?.note || "-",
         device_type: item?.device_type || "",
         device_name: item?.device_name || "",
         device_serial: item?.device_serial || "",
@@ -115,6 +189,20 @@ function createEditForm(item = null) {
     };
 }
 
+/**
+ * Создаёт начальное состояние формы формирования акта.
+ *
+ * @param {Record<string, any> | null} [item=null] Запись перемещения.
+ * @returns {{
+ *     request_number: string,
+ *     act_number: string,
+ *     act_type: "income" | "expense" | "",
+ *     act_assignment_mode: "existing" | "new",
+ *     existing_act_number: string,
+ *     move_date: string,
+ *     delivery_method: string,
+ * }} Подготовленные значения формы акта.
+ */
 function createActForm(item = null) {
     const actNumber = normalizeValue(item?.act_number);
 
@@ -125,9 +213,16 @@ function createActForm(item = null) {
         act_assignment_mode: actNumber ? "existing" : "new",
         existing_act_number: actNumber,
         move_date: formatDateTimeLocalValue(item?.move_date || new Date()),
+        delivery_method: item?.delivery_method || "",
     };
 }
 
+/**
+ * Форматирует дату в короткий вид `ДД.ММ.ГГ`.
+ *
+ * @param {string | number | Date | null | undefined} value Исходное значение даты.
+ * @returns {string} Отформатированная дата или пустая строка.
+ */
 function formatDateShort(value) {
     if (!value) return "";
 
@@ -142,6 +237,12 @@ function formatDateShort(value) {
     return `${day}.${month}.${year}`;
 }
 
+/**
+ * Форматирует дату в полный вид `ДД.ММ.ГГГГ`.
+ *
+ * @param {string | number | Date | null | undefined} value Исходное значение даты.
+ * @returns {string} Отформатированная дата или пустая строка.
+ */
 function formatDateLong(value) {
     if (!value) return "";
 
@@ -156,6 +257,12 @@ function formatDateLong(value) {
     return `${day}.${month}.${year}`;
 }
 
+/**
+ * Экранирует спецсимволы для безопасной вставки в XML Word-документа.
+ *
+ * @param {unknown} value Исходное значение.
+ * @returns {string} Экранированная строка.
+ */
 function escapeXml(value) {
     return String(value || "")
         .replaceAll("&", "&amp;")
@@ -165,6 +272,22 @@ function escapeXml(value) {
         .replaceAll("'", "&apos;");
 }
 
+/**
+ * Собирает XML абзаца Word с базовыми параметрами оформления.
+ *
+ * @param {string} text Текст абзаца.
+ * @param {{
+ *     bold?: boolean,
+ *     size?: number,
+ *     underline?: boolean,
+ *     align?: string,
+ *     left?: string,
+ *     hanging?: string,
+ *     before?: string,
+ *     xmlSpace?: boolean,
+ * }} [options={}] Опции форматирования.
+ * @returns {string} XML-фрагмент абзаца Word.
+ */
 function buildWordParagraphXml(text, options = {}) {
     const {
         bold = false,
@@ -215,6 +338,13 @@ function buildWordParagraphXml(text, options = {}) {
     `;
 }
 
+/**
+ * Собирает XML ячейки таблицы Word.
+ *
+ * @param {string} text Текст ячейки.
+ * @param {string} width Ширина ячейки в единицах Word.
+ * @returns {string} XML-фрагмент ячейки.
+ */
 function buildWordCellXml(text, width) {
     return `
         <w:tc>
@@ -224,8 +354,91 @@ function buildWordCellXml(text, width) {
     `;
 }
 
-function buildExpenseActRowXml(item, index, requestMeta = {}) {
-    const values = [
+function cloneRunProps(paragraph, document) {
+    const firstRun = paragraph.getElementsByTagNameNS(WORD_NS, "r")[0];
+    const runProps = firstRun?.getElementsByTagNameNS(WORD_NS, "rPr")[0];
+    return runProps
+        ? runProps.cloneNode(true)
+        : document.createElementNS(WORD_NS, "w:rPr");
+}
+
+function clearParagraphContent(paragraph) {
+    Array.from(paragraph.childNodes).forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE && node.localName === "pPr") {
+            return;
+        }
+
+        paragraph.removeChild(node);
+    });
+}
+
+function appendParagraphSegment(document, paragraph, runProps, segment) {
+    const run = document.createElementNS(WORD_NS, "w:r");
+    run.appendChild(runProps.cloneNode(true));
+
+    if (segment.type === "tab") {
+        run.appendChild(document.createElementNS(WORD_NS, "w:tab"));
+        paragraph.appendChild(run);
+        return;
+    }
+
+    if (segment.type === "break") {
+        const breakNode = document.createElementNS(WORD_NS, "w:br");
+        if (segment.breakType) {
+            breakNode.setAttributeNS(WORD_NS, "w:type", segment.breakType);
+        }
+        run.appendChild(breakNode);
+        paragraph.appendChild(run);
+        return;
+    }
+
+    const textNode = document.createElementNS(WORD_NS, "w:t");
+    if (segment.preserveSpace) {
+        textNode.setAttributeNS(
+            "http://www.w3.org/XML/1998/namespace",
+            "xml:space",
+            "preserve",
+        );
+    }
+    textNode.textContent = segment.value ?? "";
+    run.appendChild(textNode);
+    paragraph.appendChild(run);
+}
+
+function replaceParagraphSegments(
+    paragraph,
+    segments,
+    styleSourceParagraph = null,
+) {
+    const document = paragraph.ownerDocument;
+    const runProps = cloneRunProps(styleSourceParagraph || paragraph, document);
+
+    clearParagraphContent(paragraph);
+    segments.forEach((segment) => {
+        appendParagraphSegment(document, paragraph, runProps, segment);
+    });
+}
+
+function replaceCellText(cell, value) {
+    const paragraphs = Array.from(cell.getElementsByTagNameNS(WORD_NS, "p"));
+    const primaryParagraph =
+        paragraphs[0] ||
+        cell.appendChild(cell.ownerDocument.createElementNS(WORD_NS, "w:p"));
+
+    replaceParagraphSegments(primaryParagraph, [
+        {
+            type: "text",
+            value: String(value ?? ""),
+        },
+    ]);
+
+    paragraphs.slice(1).forEach((paragraph) => {
+        paragraph.parentNode?.removeChild(paragraph);
+    });
+}
+
+function buildExpenseActRowValues(item, index, requestMeta = {}) {
+    return [
         String(index + 1),
         item?.device_name || "-",
         item?.device_serial || "-",
@@ -233,8 +446,20 @@ function buildExpenseActRowXml(item, index, requestMeta = {}) {
         item?.to_location || "-",
         requestMeta?.request_basis || "-",
         item?.request_number || "-",
-        requestMeta?.created_by || "-",
+        item?.note || "-",
     ];
+}
+
+/**
+ * Формирует строку таблицы для расходного акта.
+ *
+ * @param {Record<string, any>} item Запись перемещения.
+ * @param {number} index Порядковый номер строки.
+ * @param {Record<string, any>} [requestMeta={}] Дополнительные данные заявки.
+ * @returns {string} XML-фрагмент строки таблицы.
+ */
+function buildExpenseActRowXml(item, index, requestMeta = {}) {
+    const values = buildExpenseActRowValues(item, index, requestMeta);
     const widths = [
         "1101",
         "2887",
@@ -257,8 +482,14 @@ function buildExpenseActRowXml(item, index, requestMeta = {}) {
     `;
 }
 
+/**
+ * Формирует пункт списка для приходного акта.
+ *
+ * @param {Record<string, any>} item Запись перемещения.
+ * @param {Record<string, any>} [requestMeta={}] Дополнительные данные заявки.
+ * @returns {string} XML-фрагмент элемента списка.
+ */
 function buildIncomeActItemXml(item, requestMeta = {}) {
-    console.log(item);
     const parts = [
         item?.device_name || "-",
         item?.device_serial || "-",
@@ -266,7 +497,7 @@ function buildIncomeActItemXml(item, requestMeta = {}) {
         item?.to_location || "-",
         requestMeta?.request_basis || "-",
         item?.request_number || "-",
-        requestMeta?.created_by || "-",
+        item?.note || "-",
     ];
 
     return `
@@ -292,18 +523,16 @@ function buildIncomeActItemXml(item, requestMeta = {}) {
             </w:pPr>
             ${parts
                 .map(
-                    (value, index) => `
+                    (value, cellIndex) => `
                         <w:r>
                             <w:rPr>
                                 <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>
-                                <w:color w:val="${
-                                    index === 0 ? "3F3F3F" : "0F243F"
-                                }"/>
+                                <w:color w:val="${cellIndex === 0 ? "3F3F3F" : "0F243F"}"/>
                                 <w:sz w:val="22"/>
                             </w:rPr>
                             <w:t>${escapeXml(value)}</w:t>
                         </w:r>
-                        ${index < parts.length - 1 ? "<w:r><w:tab/></w:r>" : ""}
+                        ${cellIndex < parts.length - 1 ? "<w:r><w:tab/></w:r>" : ""}
                     `,
                 )
                 .join("")}
@@ -311,6 +540,13 @@ function buildIncomeActItemXml(item, requestMeta = {}) {
     `;
 }
 
+/**
+ * Преобразует XML-строку в DOM-узлы текущего Word-документа.
+ *
+ * @param {string} xml XML-фрагмент для вставки.
+ * @param {XMLDocument} document Целевой XML-документ Word.
+ * @returns {ChildNode[]} Импортированные DOM-узлы.
+ */
 function parseWordFragment(xml, document) {
     const parser = new DOMParser();
     const parsed = parser.parseFromString(
@@ -323,14 +559,39 @@ function parseWordFragment(xml, document) {
     );
 }
 
+/**
+ * Подставляет данные в шаблон расходного акта и возвращает готовый XML документа.
+ *
+ * @param {string} templateXml XML шаблона Word.
+ * @param {{
+ *     actNumber: string,
+ *     moveDate: string | number | Date,
+ *     items: Array<Record<string, any>>,
+ *     requestMetaByNumber: Map<string, Record<string, any>>,
+ * }} payload Данные для генерации документа.
+ * @returns {string} Сериализованный XML расходного акта.
+ */
 function buildExpenseActDocumentXml(templateXml, payload) {
-    const { actNumber, moveDate, items, requestMetaByNumber } = payload;
+    const {
+        actNumber,
+        moveDate,
+        number_akt = actNumber,
+        create_date = moveDate,
+        items,
+        requestMetaByNumber,
+    } = payload;
     const parser = new DOMParser();
     const xmlDocument = parser.parseFromString(templateXml, "application/xml");
     const paragraphs = Array.from(
         xmlDocument.getElementsByTagNameNS(WORD_NS, "p"),
     );
-    const table = xmlDocument.getElementsByTagNameNS(WORD_NS, "tbl")[0];
+    const tables = Array.from(
+        xmlDocument.getElementsByTagNameNS(WORD_NS, "tbl"),
+    );
+    const table = tables.find((candidate) => {
+        const firstRow = candidate.getElementsByTagNameNS(WORD_NS, "tr")[0];
+        return firstRow?.getElementsByTagNameNS(WORD_NS, "tc").length >= 8;
+    });
 
     if (!table) {
         throw new Error("Не найдена таблица в шаблоне Word");
@@ -397,6 +658,114 @@ function buildExpenseActDocumentXml(templateXml, payload) {
     return new XMLSerializer().serializeToString(xmlDocument);
 }
 
+function buildExpenseActDocumentXmlV2(templateXml, payload) {
+    const {
+        actNumber,
+        moveDate,
+        number_akt = actNumber,
+        create_date = moveDate,
+        items,
+        requestMetaByNumber,
+    } = payload;
+    const parser = new DOMParser();
+    const xmlDocument = parser.parseFromString(templateXml, "application/xml");
+    const paragraphs = Array.from(
+        xmlDocument.getElementsByTagNameNS(WORD_NS, "p"),
+    );
+    const tables = Array.from(
+        xmlDocument.getElementsByTagNameNS(WORD_NS, "tbl"),
+    );
+    const table = tables.find((candidate) => {
+        const firstRow = candidate.getElementsByTagNameNS(WORD_NS, "tr")[0];
+        return firstRow?.getElementsByTagNameNS(WORD_NS, "tc").length >= 8;
+    });
+
+    if (!table) {
+        throw new Error("В шаблоне Word не найдена таблица акта");
+    }
+
+    const titleParagraph = paragraphs.find((paragraph) =>
+        paragraph.textContent.includes("{number_akt}"),
+    );
+    const dateParagraph = paragraphs.find((paragraph) =>
+        paragraph.textContent.includes("{create_date}"),
+    );
+
+    if (!titleParagraph || !dateParagraph) {
+        throw new Error(
+            "В шаблоне Word не найдены плейсхолдеры number_akt/create_date",
+        );
+    }
+
+    replaceParagraphSegments(titleParagraph, [
+        {
+            type: "text",
+            value: `Акт № ${normalizeValue(number_akt) || "-"}`,
+        },
+    ]);
+    replaceParagraphSegments(
+        dateParagraph,
+        [
+            {
+                type: "break",
+                breakType: "column",
+            },
+            {
+                type: "text",
+                value: "от",
+            },
+            {
+                type: "tab",
+            },
+            {
+                type: "text",
+                value: formatDateShort(create_date),
+            },
+        ],
+        titleParagraph,
+    );
+
+    const rows = Array.from(table.getElementsByTagNameNS(WORD_NS, "tr"));
+    if (rows.length < 2) {
+        throw new Error("В шаблоне Word не найдена строка-образец");
+    }
+
+    const sampleRow = rows[1];
+    items.forEach((item, index) => {
+        const row = sampleRow.cloneNode(true);
+        const values = buildExpenseActRowValues(
+            item,
+            index,
+            requestMetaByNumber.get(normalizeValue(item?.request_number)) || {},
+        );
+        const cells = Array.from(row.getElementsByTagNameNS(WORD_NS, "tc"));
+
+        values.forEach((value, cellIndex) => {
+            if (cells[cellIndex]) {
+                replaceCellText(cells[cellIndex], value);
+            }
+        });
+
+        table.insertBefore(row, sampleRow);
+    });
+
+    table.removeChild(sampleRow);
+
+    return new XMLSerializer().serializeToString(xmlDocument);
+}
+
+/**
+ * Подставляет данные в шаблон приходного акта и возвращает готовый XML документа.
+ *
+ * @param {string} templateXml XML шаблона Word.
+ * @param {{
+ *     actNumber: string,
+ *     moveDate: string | number | Date,
+ *     items: Array<Record<string, any>>,
+ *     requestMetaByNumber: Map<string, Record<string, any>>,
+ * }} payload Данные для генерации документа.
+ * @returns {string} Сериализованный XML приходного акта.
+ */
 function buildIncomeActDocumentXml(templateXml, payload) {
     const { actNumber, moveDate, items, requestMetaByNumber } = payload;
     const parser = new DOMParser();
@@ -479,6 +848,16 @@ function buildIncomeActDocumentXml(templateXml, payload) {
     return new XMLSerializer().serializeToString(xmlDocument);
 }
 
+function buildIncomeActDocumentXmlV2(templateXml, payload) {
+    return buildExpenseActDocumentXmlV2(templateXml, payload);
+}
+
+/**
+ * Экранирует спецсимволы для безопасного вывода HTML.
+ *
+ * @param {unknown} value Исходное значение.
+ * @returns {string} Экранированная строка.
+ */
 function escapeHtml(value) {
     return String(value || "")
         .replaceAll("&", "&amp;")
@@ -488,139 +867,140 @@ function escapeHtml(value) {
         .replaceAll("'", "&#39;");
 }
 
-function buildActHtml(selectedItem, actItems) {
-    const resolvedActType = getResolvedActType(selectedItem);
-    const title = getActTypeLabel(resolvedActType);
-    const normalizedItems =
-        Array.isArray(actItems) && actItems.length > 0
-            ? actItems
-            : [selectedItem];
-    const headerRows = [
-        ["Номер акта", selectedItem?.act_number || "-"],
-        ["Дата", formatDate(selectedItem?.move_date)],
-        ["Тип акта", title],
-    ];
+// function buildActHtml(selectedItem, actItems) {
+//     const resolvedActType = getResolvedActType(selectedItem);
+//     const title = getActTypeLabel(resolvedActType);
+//     const normalizedItems =
+//         Array.isArray(actItems) && actItems.length > 0
+//             ? actItems
+//             : [selectedItem];
+//     const headerRows = [
+//         ["Номер акта", selectedItem?.act_number || "-"],
+//         ["Дата", formatDate(selectedItem?.move_date)],
+//         ["Тип акта", title],
+//     ];
 
-    const headerRowsHtml = headerRows
-        .map(
-            ([label, value]) => `
-                <tr>
-                    <th>${escapeHtml(label)}</th>
-                    <td>${escapeHtml(value)}</td>
-                </tr>
-            `,
-        )
-        .join("");
+//     const headerRowsHtml = headerRows
+//         .map(
+//             ([label, value]) => `
+//                 <tr>
+//                     <th>${escapeHtml(label)}</th>
+//                     <td>${escapeHtml(value)}</td>
+//                 </tr>
+//             `,
+//         )
+//         .join("");
 
-    const itemRowsHtml = normalizedItems
-        .map(
-            (item, index) => `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${escapeHtml(item?.request_number || "-")}</td>
-                    <td>${escapeHtml(item?.device_type || "-")}</td>
-                    <td>${escapeHtml(item?.device_name || "-")}</td>
-                    <td>${escapeHtml(item?.device_serial || "-")}</td>
-                    <td>${escapeHtml(item?.inv_number || "-")}</td>
-                    <td>${escapeHtml(item?.from_location || "-")}</td>
-                    <td>${escapeHtml(item?.to_location || "-")}</td>
-                    <td>${escapeHtml(item?.quantity ?? "-")}</td>
-                </tr>
-            `,
-        )
-        .join("");
+//     const itemRowsHtml = normalizedItems
+//         .map(
+//             (item, index) => `
+//                 <tr>
+//                     <td>${index + 1}</td>
+//                     <td>${escapeHtml(item?.request_number || "-")}</td>
+//                     <td>${escapeHtml(item?.device_type || "-")}</td>
+//                     <td>${escapeHtml(item?.device_name || "-")}</td>
+//                     <td>${escapeHtml(item?.device_serial || "-")}</td>
+//                     <td>${escapeHtml(item?.inv_number || "-")}</td>
+//                     <td>${escapeHtml(item?.from_location || "-")}</td>
+//                     <td>${escapeHtml(item?.to_location || "-")}</td>
+//                     <td>${escapeHtml(item?.quantity ?? "-")}</td>
+//                 </tr>
+//             `,
+//         )
+//         .join("");
 
-    return `<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8" />
-    <title>${escapeHtml(title)}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 32px;
-            color: #222;
-        }
-        .page {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-        h1 {
-            margin: 0 0 12px;
-            font-size: 28px;
-        }
-        .meta {
-            margin-bottom: 24px;
-            color: #555;
-            font-size: 14px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th,
-        td {
-            border: 1px solid #cfcfcf;
-            padding: 10px 12px;
-            text-align: left;
-            vertical-align: top;
-        }
-        th {
-            background: #f7f7f7;
-        }
-        .item-table {
-            margin-top: 24px;
-        }
-        .signatures {
-            margin-top: 48px;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 32px;
-        }
-        .signature-line {
-            border-top: 1px solid #555;
-            padding-top: 8px;
-            min-height: 48px;
-        }
-    </style>
-</head>
-<body>
-    <div class="page">
-        <h1>${escapeHtml(title)}</h1>
-        <div class="meta">Сформировано: ${escapeHtml(
-            new Date().toLocaleString("ru-RU"),
-        )}</div>
-        <table>
-            <tbody>
-                ${headerRowsHtml}
-            </tbody>
-        </table>
-        <table class="item-table">
-            <thead>
-                <tr>
-                    <th>№</th>
-                    <th>По какой заявке</th>
-                    <th>Тип устройства</th>
-                    <th>Наименование</th>
-                    <th>Серийный номер</th>
-                    <th>Инвентарный номер</th>
-                    <th>Откуда</th>
-                    <th>Куда</th>
-                    <th>Количество</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${itemRowsHtml}
-            </tbody>
-        </table>
-        <div class="signatures">
-            <div class="signature-line">Сдал</div>
-            <div class="signature-line">Принял</div>
-        </div>
-    </div>
-</body>
-</html>`;
-}
+//     return `<!DOCTYPE html>
+// <html lang="ru">
+// <head>
+//     <meta charset="UTF-8" />
+//     <title>${escapeHtml(title)}</title>
+//     <style>
+//         body {
+//             font-family: Arial, sans-serif;
+//             margin: 32px;
+//             color: #222;
+//         }
+//         .page {
+//             max-width: 1100px;
+//             margin: 0 auto;
+//         }
+//         h1 {
+//             margin: 0 0 12px;
+//             font-size: 28px;
+//         }
+//         .meta {
+//             margin-bottom: 24px;
+//             color: #555;
+//             font-size: 14px;
+//         }
+//         table {
+//             width: 100%;
+//             border-collapse: collapse;
+//         }
+//         th,
+//         td {
+//             border: 1px solid #cfcfcf;
+//             padding: 10px 12px;
+//             text-align: left;
+//             vertical-align: top;
+//         }
+//         th {
+//             background: #f7f7f7;
+//         }
+//         .item-table {
+//             margin-top: 24px;
+//         }
+//         .signatures {
+//             margin-top: 48px;
+//             display: grid;
+//             grid-template-columns: repeat(2, minmax(0, 1fr));
+//             gap: 32px;
+//         }
+//         .signature-line {
+//             border-top: 1px solid #555;
+//             padding-top: 8px;
+//             min-height: 48px;
+//         }
+//     </style>
+// </head>
+// <body>
+//     <div class="page">
+//         <h1>ТЕСТ</h1>
+//         <h1>${escapeHtml(title)}</h1>
+//         <div class="meta">Сформировано: ${escapeHtml(
+//             new Date().toLocaleString("ru-RU"),
+//         )}</div>
+//         <table>
+//             <tbody>
+//                 ${headerRowsHtml}
+//             </tbody>
+//         </table>
+//         <table class="item-table">
+//             <thead>
+//                 <tr>
+//                     <th>№</th>
+//                     <th>По какой заявке</th>
+//                     <th>Тип устройства</th>
+//                     <th>Наименование</th>
+//                     <th>Серийный номер</th>
+//                     <th>Инвентарный номер</th>
+//                     <th>Откуда</th>
+//                     <th>Куда</th>
+//                     <th>Количество</th>
+//                 </tr>
+//             </thead>
+//             <tbody>
+//                 ${itemRowsHtml}
+//             </tbody>
+//         </table>
+//         <div class="signatures">
+//             <div class="signature-line">Сдал</div>
+//             <div class="signature-line">Принял</div>
+//         </div>
+//     </div>
+// </body>
+// </html>`;
+// }
 
 function compareActNumbers(left, right) {
     const leftParsed = parseActNumber(left.act_number);
@@ -1154,12 +1534,16 @@ export default function MoveTs() {
 
         const payload = {
             actNumber: item?.act_number || "",
+            number_akt: item?.act_number || "",
             moveDate: item?.move_date,
+            create_date: item?.move_date,
             items: actItems,
             requestMetaByNumber,
         };
         const nextDocumentXml = (
-            isIncomeAct ? buildIncomeActDocumentXml : buildExpenseActDocumentXml
+            isIncomeAct
+                ? buildIncomeActDocumentXmlV2
+                : buildExpenseActDocumentXmlV2
         )(documentFile.asText(), payload);
 
         zip.file("word/document.xml", nextDocumentXml);
@@ -1225,7 +1609,7 @@ export default function MoveTs() {
                         request_number: selectedItem.request_number,
                         move_date: actForm.move_date,
                         status: selectedItem.status,
-                        delivery_method: selectedItem.delivery_method,
+                        delivery_method: actForm.delivery_method,
                         device_type: selectedItem.device_type,
                         device_name: selectedItem.device_name,
                         device_serial: selectedItem.device_serial,
@@ -1296,6 +1680,7 @@ export default function MoveTs() {
                                     <th>Дата</th>
                                     <th>Статус</th>
                                     <th>Способ доставки</th>
+                                    <th>Примечание</th>
                                     <th>Тип устройства</th>
                                     <th>Наименование</th>
                                     <th>Серийный номер</th>
@@ -1333,6 +1718,7 @@ export default function MoveTs() {
                                         <td>{formatDate(item.move_date)}</td>
                                         <td>{item.status || "-"}</td>
                                         <td>{item.delivery_method || "-"}</td>
+                                        <td>{item.note || "-"}</td>
                                         <td>{item.device_type || "-"}</td>
                                         <td>{item.device_name || "-"}</td>
                                         <td>{item.device_serial || "-"}</td>
@@ -1483,6 +1869,17 @@ export default function MoveTs() {
                                         </div>
                                         <div className="column is-6">
                                             <label className="label">
+                                                Примечание
+                                            </label>
+                                            <input
+                                                className="input"
+                                                name="note"
+                                                onChange={handleEditFieldChange}
+                                                value={editForm.note}
+                                            />
+                                        </div>
+                                        <div className="column is-6">
+                                            <label className="label">
                                                 Тип устройства
                                             </label>
                                             <input
@@ -1587,6 +1984,10 @@ export default function MoveTs() {
                                                 </strong>{" "}
                                                 {selectedItem.delivery_method ||
                                                     "-"}
+                                            </div>
+                                            <div className="column is-6">
+                                                <strong>Примечание:</strong>{" "}
+                                                {selectedItem.note || "-"}
                                             </div>
                                             <div className="column is-6">
                                                 <strong>Тип устройства:</strong>{" "}
@@ -1860,10 +2261,6 @@ export default function MoveTs() {
                                         readOnly
                                     />
                                 )}
-                                {/* исправить! */}
-                                <p className="help">
-                                    Расход: 74/1-Р-26, приход: 56/1-П-26
-                                </p>
                             </div>
 
                             <div className="column is-6">
@@ -1874,6 +2271,17 @@ export default function MoveTs() {
                                     onChange={handleActFieldChange}
                                     type="datetime-local"
                                     value={actForm.move_date}
+                                />
+                            </div>
+
+                            <div className="column is-6">
+                                <label className="label">Способ доставки</label>
+                                <input
+                                    className="input"
+                                    name="delivery_method"
+                                    onChange={handleActFieldChange}
+                                    placeholder="Введите способ доставки"
+                                    value={actForm.delivery_method}
                                 />
                             </div>
 

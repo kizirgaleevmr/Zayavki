@@ -152,6 +152,7 @@ const moveTsScheme = new Schema(
         move_date: { type: Date, default: Date.now },
         status: { type: String, default: "на отправку" },
         delivery_method: { type: String, default: "" },
+        note: { type: String, default: "-" },
         device_type: { type: String, default: "" },
         device_name: { type: String, default: "" },
         device_serial: { type: String, default: "" },
@@ -600,6 +601,10 @@ async function fetchMoveTsByIdSafe(id) {
 async function buildMoveTsUpdatePayload(body = {}, currentItem = null) {
     const moveDate = normalizeMoveTsDate(body.move_date, null);
     const quantity = normalizeMoveTsQuantity(body.quantity);
+    const note =
+        normalizeMoveTsString(body.note) ||
+        normalizeMoveTsString(currentItem?.note) ||
+        "-";
     const assignmentMode = normalizeMoveTsActAssignmentMode(
         body.act_assignment_mode,
     );
@@ -683,6 +688,7 @@ async function buildMoveTsUpdatePayload(body = {}, currentItem = null) {
             move_date: moveDate,
             status: normalizeMoveTsString(body.status),
             delivery_method: normalizeMoveTsString(body.delivery_method),
+            note,
             device_type: normalizeMoveTsString(body.device_type),
             device_name: normalizeMoveTsString(body.device_name),
             device_serial: normalizeMoveTsString(body.device_serial),
@@ -837,6 +843,7 @@ async function createMoveTsForZayavka({
         move_date: new Date(),
         status: "на отправку",
         delivery_method: "",
+        note: "-",
         device_type: String(deviceType || "").trim(),
         device_name: String(deviceName || "").trim(),
         device_serial: String(deviceSerial || "").trim(),
@@ -870,6 +877,7 @@ async function upsertMoveTsForReplacementDecision({
                 move_date: new Date(),
                 status: "на отправку",
                 delivery_method: "",
+                note: "-",
                 device_type: String(deviceType || "").trim(),
                 device_name: String(deviceName || "").trim(),
                 device_serial: String(deviceSerial || "").trim(),
@@ -912,6 +920,7 @@ async function upsertMoveTsForPickupDecision({
                 move_date: new Date(),
                 status: "на забор",
                 delivery_method: "",
+                note: "-",
                 device_type: String(deviceType || "").trim(),
                 device_name: String(deviceName || "").trim(),
                 device_serial: String(deviceSerial || "").trim(),
