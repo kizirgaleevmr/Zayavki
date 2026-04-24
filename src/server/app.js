@@ -237,34 +237,25 @@ function formatRequestNumber(date, sequenceNumber) {
     return `${year}${month}${day}${sequence}`;
 }
 
-async function getZayavkiCountSafe() {
-    const fromModel = await Zayavka.countDocuments({});
-    if (fromModel > 0) return fromModel;
+function parseRequestSequence(requestNumber) {
+    const normalized = String(requestNumber || "").trim();
+    const match = normalized.match(/(\d{6})$/);
+    return match ? Number(match[1]) : 0;
+}
 
-    const db = mongoose.connection.db;
-    const candidates = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
+async function getMaxRequestSequenceSafe() {
+    const zayavki = await fetchZayavkiSafe();
 
-    for (const collectionName of candidates) {
-        const count = await db.collection(collectionName).countDocuments({});
-        if (count > 0) {
-            return count;
-        }
-    }
-
-    return 0;
+    return zayavki.reduce((maxSequence, item) => {
+        const nextSequence = parseRequestSequence(item?.request_number);
+        return Math.max(maxSequence, nextSequence);
+    }, 0);
 }
 
 async function getNextRequestNumber(date) {
     const valueDate = date instanceof Date ? date : new Date(date);
-    let sequenceNumber = (await getZayavkiCountSafe()) + 1;
-
-    // Keep the requested count-based numbering, but skip values that already
-    // exist so creating a new request does not fail after deletions.
-    while (await Zayavka.exists({ request_number: formatRequestNumber(valueDate, sequenceNumber) })) {
-        sequenceNumber += 1;
-    }
-
-    return formatRequestNumber(valueDate, sequenceNumber);
+    const nextSequenceNumber = (await getMaxRequestSequenceSafe()) + 1;
+    return formatRequestNumber(valueDate, nextSequenceNumber);
 }
 
 async function fetchRegionsSafe() {
