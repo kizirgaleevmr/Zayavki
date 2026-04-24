@@ -11,6 +11,7 @@ import {
 const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
 const REPAIR_DECISION_OPTIONS = [
     { value: "repair_on_site", label: "Ремонт на месте" },
+
     { value: "replacement", label: "Замена" },
 ];
 const ZAYAVKI_TABLE_COLUMNS = [
@@ -126,6 +127,7 @@ export default function AllZayavki() {
     const [detailsError, setDetailsError] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedZayavkaId, setSelectedZayavkaId] = useState("");
+    const [decisionRequestBasis, setDecisionRequestBasis] = useState("");
     const [decisionText, setDecisionText] = useState("");
     const [decisionDate, setDecisionDate] = useState("");
     const [decisionKind, setDecisionKind] = useState("");
@@ -140,10 +142,14 @@ export default function AllZayavki() {
     const [replacementDeviceSerials, setReplacementDeviceSerials] = useState(
         [],
     );
-    const [replacementSelectedDeviceTypeId, setReplacementSelectedDeviceTypeId] =
-        useState("");
-    const [replacementSelectedDeviceNameId, setReplacementSelectedDeviceNameId] =
-        useState("");
+    const [
+        replacementSelectedDeviceTypeId,
+        setReplacementSelectedDeviceTypeId,
+    ] = useState("");
+    const [
+        replacementSelectedDeviceNameId,
+        setReplacementSelectedDeviceNameId,
+    ] = useState("");
     const [isSavingDecision, setIsSavingDecision] = useState(false);
     const [decisionError, setDecisionError] = useState("");
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -226,6 +232,23 @@ export default function AllZayavki() {
         return String(value || "")
             .trim()
             .toLowerCase();
+    }
+
+    function getTodayInputDateValue() {
+        return new Date().toISOString().slice(0, 10);
+    }
+
+    function resetReplacementDecisionState() {
+        setReplacementForm({
+            device_type: "",
+            device_name: "",
+            device_serial: "",
+            inv_number: "",
+        });
+        setReplacementSelectedDeviceTypeId("");
+        setReplacementSelectedDeviceNameId("");
+        setReplacementDeviceNames([]);
+        setReplacementDeviceSerials([]);
     }
 
     const selectedZayavka = useMemo(() => {
@@ -629,9 +652,10 @@ export default function AllZayavki() {
 
     function openDecisionModal(item) {
         setSelectedZayavkaId(String(item?._id || "").trim());
+        const nextRequestBasis = item.request_basis || "";
         const nextDecisionKind =
             item.decision_kind ||
-            (item.request_basis === "Дооснащение"
+            (nextRequestBasis === "Дооснащение"
                 ? "supplement"
                 : item.decision === "Замена"
                   ? "replacement"
@@ -639,7 +663,10 @@ export default function AllZayavki() {
                     ? "repair_on_site"
                     : "");
 
-        setDecisionKind(nextDecisionKind);
+        setDecisionRequestBasis(nextRequestBasis);
+        setDecisionKind(
+            nextRequestBasis === "Дооснащение" ? "supplement" : nextDecisionKind,
+        );
         setDecisionText(
             item.repair_description ||
                 (nextDecisionKind === "repair_on_site"
@@ -649,13 +676,13 @@ export default function AllZayavki() {
         setDecisionDate(
             item.decision_date
                 ? new Date(item.decision_date).toISOString().slice(0, 10)
-                : "",
+                : nextRequestBasis === "Дооснащение"
+                  ? getTodayInputDateValue()
+                  : "",
         );
         setReplacementForm({
-            device_type:
-                item.replacement_device_type || item.device_type || "",
-            device_name:
-                item.replacement_device_name || item.device_name || "",
+            device_type: item.replacement_device_type || item.device_type || "",
+            device_name: item.replacement_device_name || item.device_name || "",
             device_serial: item.replacement_device_serial || "",
             inv_number: item.replacement_inv_number || "",
         });
@@ -666,20 +693,29 @@ export default function AllZayavki() {
     function closeDecisionModal() {
         setIsModalOpen(false);
         setSelectedZayavkaId("");
+        setDecisionRequestBasis("");
         setDecisionText("");
         setDecisionKind("");
         setDecisionDate("");
-        setReplacementForm({
-            device_type: "",
-            device_name: "",
-            device_serial: "",
-            inv_number: "",
-        });
-        setReplacementSelectedDeviceTypeId("");
-        setReplacementSelectedDeviceNameId("");
-        setReplacementDeviceNames([]);
-        setReplacementDeviceSerials([]);
+        resetReplacementDecisionState();
         setDecisionError("");
+    }
+
+    function handleDecisionRequestBasisChange(evt) {
+        const nextRequestBasis = evt.target.value;
+
+        setDecisionRequestBasis(nextRequestBasis);
+        setDecisionError("");
+        setDecisionText("");
+        resetReplacementDecisionState();
+
+        if (nextRequestBasis === "Дооснащение") {
+            setDecisionKind("supplement");
+            setDecisionDate((prev) => prev || getTodayInputDateValue());
+            return;
+        }
+
+        setDecisionKind("");
     }
 
     function handleReplacementDeviceTypeChange(evt) {
@@ -734,7 +770,9 @@ export default function AllZayavki() {
         setReplacementForm((prev) => ({
             ...prev,
             device_serial: nextSerialValue,
-            inv_number: String(selectedSerial?.inv_number || prev.inv_number || "").trim(),
+            inv_number: String(
+                selectedSerial?.inv_number || prev.inv_number || "",
+            ).trim(),
         }));
     }
 
@@ -758,7 +796,7 @@ export default function AllZayavki() {
                     result.message || "Не удалось получить данные заявки",
                 );
             }
-                setDetailsZayavkaData(result);
+            setDetailsZayavkaData(result);
         } catch (err) {
             setDetailsError(err.message || "Ошибка загрузки деталей заявки");
         } finally {
@@ -1242,6 +1280,21 @@ ${photoBlock}
             setIsSavingDecision(true);
             setDecisionError("");
 
+            const nextRequestBasis =
+                decisionRequestBasis || selectedZayavka.request_basis || "";
+            const nextDecisionKind =
+                nextRequestBasis === "Дооснащение"
+                    ? "supplement"
+                    : decisionKind;
+            const nextDecision =
+                nextRequestBasis === "Дооснащение"
+                    ? "Дооснащение"
+                    : nextDecisionKind === "replacement"
+                      ? "Замена"
+                      : nextDecisionKind === "repair_on_site"
+                        ? "Ремонт на месте"
+                        : "";
+
             const response = await fetchWithAuth(
                 `${apiUrl}/zayavki/${selectedZayavka._id}/decision`,
                 {
@@ -1250,23 +1303,16 @@ ${photoBlock}
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        decision:
-                            selectedZayavka.request_basis === "Дооснащение"
-                                ? "Дооснащение"
-                                : decisionKind === "replacement"
-                                  ? "Замена"
-                                  : "Ремонт на месте",
+                        request_basis: nextRequestBasis,
+                        decision: nextDecision,
                         decision_date: decisionDate,
-                        decision_kind: decisionKind,
+                        decision_kind: nextDecisionKind,
                         repair_description: decisionText,
-                        replacement_device_type:
-                            replacementForm.device_type,
-                        replacement_device_name:
-                            replacementForm.device_name,
+                        replacement_device_type: replacementForm.device_type,
+                        replacement_device_name: replacementForm.device_name,
                         replacement_device_serial:
                             replacementForm.device_serial,
-                        replacement_inv_number:
-                            replacementForm.inv_number,
+                        replacement_inv_number: replacementForm.inv_number,
                     }),
                 },
             );
@@ -1396,7 +1442,6 @@ ${photoBlock}
                 closeEditModal();
             }
             closeDeleteModal();
-
         } catch (err) {
             setError(err.message || "Ошибка удаления заявки");
         } finally {
@@ -1726,9 +1771,7 @@ ${photoBlock}
                                         style={{ cursor: "pointer" }}
                                         onClick={() => openDecisionModal(item)}
                                     >
-                                        <td>
-                                            {getRequestNumberLabel(item)}
-                                        </td>
+                                        <td>{getRequestNumberLabel(item)}</td>
                                         <td>
                                             {item.createdAt
                                                 ? new Date(
@@ -1939,8 +1982,7 @@ ${photoBlock}
                                             : "-"}
                                     </p>
                                     <span className="tag is-info">
-                                        в„–{" "}
-                                        {getRequestNumberLabel(item)}
+                                        в„– {getRequestNumberLabel(item)}
                                     </span>
                                     <span className="tag is-light">
                                         {item.ksa_number ||
@@ -2161,19 +2203,27 @@ ${photoBlock}
                                 </p>
                             </>
                         ) : null}
-                        {selectedZayavka?.request_basis === "Дооснащение" ? (
-                            <div className="field">
-                                <label className="label">Решение</label>
-                                <div className="control">
-                                    <input
-                                        className="input"
-                                        type="text"
-                                        value="Дооснащение"
-                                        disabled
-                                    />
+                        <div className="field">
+                            <label className="label">Основание заявки</label>
+                            <div className="control">
+                                <div className="select is-fullwidth">
+                                    <select
+                                        value={decisionRequestBasis}
+                                        onChange={handleDecisionRequestBasisChange}
+                                    >
+                                        <option value="">
+                                            Выбрать основание заявки
+                                        </option>
+                                        {REQUEST_BASIS_OPTIONS.map((item) => (
+                                            <option key={item} value={item}>
+                                                {item}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
-                        ) : (
+                        </div>
+                        {decisionRequestBasis === "Ремонт тс" ? (
                             <>
                                 <div className="field">
                                     <label className="label">Вид ремонта</label>
@@ -2244,7 +2294,8 @@ ${photoBlock}
                                                         }
                                                     >
                                                         <option value="">
-                                                            Выбрать тип устройства
+                                                            Выбрать тип
+                                                            устройства
                                                         </option>
                                                         {!replacementSelectedDeviceTypeId &&
                                                         replacementForm.device_type ? (
@@ -2256,14 +2307,16 @@ ${photoBlock}
                                                         ) : null}
                                                         {replacementDeviceTypes.map(
                                                             (item) => {
-                                                                const typeId = String(
-                                                                    item?.id_type ||
-                                                                        "",
-                                                                ).trim();
-                                                                const typeValue = String(
-                                                                    item?.type ||
-                                                                        "",
-                                                                ).trim();
+                                                                const typeId =
+                                                                    String(
+                                                                        item?.id_type ||
+                                                                            "",
+                                                                    ).trim();
+                                                                const typeValue =
+                                                                    String(
+                                                                        item?.type ||
+                                                                            "",
+                                                                    ).trim();
                                                                 if (
                                                                     !typeId ||
                                                                     !typeValue
@@ -2321,10 +2374,11 @@ ${photoBlock}
                                                 <datalist id="replacement-device-name-suggestions">
                                                     {replacementDeviceNames.map(
                                                         (item) => {
-                                                            const nameValue = String(
-                                                                item?.ts_naimenovanie ||
-                                                                    "",
-                                                            ).trim();
+                                                            const nameValue =
+                                                                String(
+                                                                    item?.ts_naimenovanie ||
+                                                                        "",
+                                                                ).trim();
                                                             if (!nameValue) {
                                                                 return null;
                                                             }
@@ -2375,10 +2429,11 @@ ${photoBlock}
                                                 <datalist id="replacement-device-serial-suggestions">
                                                     {replacementDeviceSerials.map(
                                                         (item) => {
-                                                            const serialValue = String(
-                                                                item?.serial_number ||
-                                                                    "",
-                                                            ).trim();
+                                                            const serialValue =
+                                                                String(
+                                                                    item?.serial_number ||
+                                                                        "",
+                                                                ).trim();
                                                             if (!serialValue) {
                                                                 return null;
                                                             }
@@ -2426,7 +2481,13 @@ ${photoBlock}
                                     </>
                                 ) : null}
                             </>
-                        )}
+                        ) : decisionRequestBasis === "Дооснащение" ? (
+                            <p className="help is-info mb-3">
+                                Для дооснащения достаточно указать дату и
+                                сохранить решение. После сохранения заявка
+                                попадёт в движение техники.
+                            </p>
+                        ) : null}
                         <div className="field">
                             <label className="label">Дата</label>
                             <div className="control">
@@ -2623,23 +2684,23 @@ ${photoBlock}
                                 ) : null}
                                 {detailsZayavka.replacement_device_type ? (
                                     <p>
-                                        <strong>Замена - тип устройства:</strong>{" "}
-                                        {
-                                            detailsZayavka.replacement_device_type
-                                        }
+                                        <strong>
+                                            Замена - тип устройства:
+                                        </strong>{" "}
+                                        {detailsZayavka.replacement_device_type}
                                     </p>
                                 ) : null}
                                 {detailsZayavka.replacement_device_name ? (
                                     <p>
                                         <strong>Замена - наименование:</strong>{" "}
-                                        {
-                                            detailsZayavka.replacement_device_name
-                                        }
+                                        {detailsZayavka.replacement_device_name}
                                     </p>
                                 ) : null}
                                 {detailsZayavka.replacement_device_serial ? (
                                     <p>
-                                        <strong>Замена - серийный номер:</strong>{" "}
+                                        <strong>
+                                            Замена - серийный номер:
+                                        </strong>{" "}
                                         {
                                             detailsZayavka.replacement_device_serial
                                         }
@@ -2647,10 +2708,10 @@ ${photoBlock}
                                 ) : null}
                                 {detailsZayavka.replacement_inv_number ? (
                                     <p>
-                                        <strong>Замена - инвентарный номер:</strong>{" "}
-                                        {
-                                            detailsZayavka.replacement_inv_number
-                                        }
+                                        <strong>
+                                            Замена - инвентарный номер:
+                                        </strong>{" "}
+                                        {detailsZayavka.replacement_inv_number}
                                     </p>
                                 ) : null}
                                 <p>
@@ -2958,11 +3019,3 @@ ${photoBlock}
 }
 
 // FIXME: - переделать модалку решения 1 ремонт 2 замена 3 консульатция и в зависимости от выбора показывать либо поле для ввода решения, либо поле для выбора консультации, либо показать поля для выбора устройства для замены (для ремонта) а также если выбрано ремонт сделать страницу движение техники и добавлять туда в таблицу данные
-
-
-
-
-
-
-
-

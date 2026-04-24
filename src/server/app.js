@@ -942,6 +942,47 @@ async function deleteMoveTsByIdSafe(id) {
     return null;
 }
 
+async function deleteMoveTsByRequestNumberSafe(requestNumber, statuses = []) {
+    const normalizedRequestNumber = normalizeMoveTsString(requestNumber);
+    if (!normalizedRequestNumber) {
+        return { deletedCount: 0, source: "" };
+    }
+
+    const normalizedStatuses = Array.isArray(statuses)
+        ? statuses.map((item) => normalizeMoveTsString(item)).filter(Boolean)
+        : [];
+    const query = {
+        request_number: normalizedRequestNumber,
+    };
+
+    if (normalizedStatuses.length > 0) {
+        query.status = { $in: normalizedStatuses };
+    }
+
+    const fromModel = await MoveTs.deleteMany(query);
+    if (fromModel?.deletedCount > 0) {
+        return {
+            deletedCount: fromModel.deletedCount,
+            source: "model:move_ts",
+        };
+    }
+
+    const db = mongoose.connection.db;
+    const candidates = ["move_ts", "movee_ts"];
+
+    for (const collectionName of candidates) {
+        const result = await db.collection(collectionName).deleteMany(query);
+        if (result?.deletedCount > 0) {
+            return {
+                deletedCount: result.deletedCount,
+                source: `collection:${collectionName}`,
+            };
+        }
+    }
+
+    return { deletedCount: 0, source: "" };
+}
+
 async function fetchZayavkiSafe() {
     const fromModel = await Zayavka.find({}).sort({ createdAt: -1 }).lean();
     if (fromModel.length > 0) return fromModel;
@@ -2043,6 +2084,7 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         const {
+            request_basis,
             decision,
             decision_date,
             decision_kind,
@@ -2060,6 +2102,15 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
             });
         }
 
+        const nextRequestBasis =
+            normalizeRequestBasis(request_basis) ||
+            normalizeRequestBasis(zayavka.request_basis);
+        if (!nextRequestBasis) {
+            return res.status(400).json({
+                message: "Выберите основание заявки",
+            });
+        }
+
         if (!decision_date) {
             return res.status(400).json({
                 message:
@@ -2074,7 +2125,6 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
             });
         }
 
-        const requestBasis = normalizeRequestBasis(zayavka.request_basis);
         let nextDecision = "";
         let nextDecisionKind = "";
         let nextRepairDescription = "";
@@ -2083,7 +2133,7 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
         let nextReplacementDeviceSerial = "";
         let nextReplacementInvNumber = "";
 
-        if (requestBasis === "Дооснащение") {
+        if (nextRequestBasis === "Дооснащение") {
             nextDecision = "Дооснащение";
             nextDecisionKind = "supplement";
         } else {
@@ -2144,6 +2194,7 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
             id,
             {
                 $set: {
+                    request_basis: nextRequestBasis,
                     decision: nextDecision,
                     decision_kind: nextDecisionKind,
                     decision_date: parsedDate,
@@ -2157,23 +2208,28 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
             { new: true },
         ).lean();
 
-        if (requestBasis === "Дооснащение") {
-            await upsertMoveTsForSupplementDecision({
-                requestNumber: zayavka.request_number,
-                ksaId: zayavka.ksa_id,
-                ksaNumber: zayavka.ksa_number,
-                requestBasis,
-                deviceType: zayavka.device_type,
-                deviceName: zayavka.device_name,
-                deviceSerial: zayavka.device_serial,
-            });
+        if (nextRequestBasis === "Дооснащение") {
+            await Promise.all([
+                upsertMoveTsForSupplementDecision({
+                    requestNumber: zayavka.request_number,
+                    ksaId: zayavka.ksa_id,
+                    ksaNumber: zayavka.ksa_number,
+                    requestBasis: nextRequestBasis,
+                    deviceType: zayavka.device_type,
+                    deviceName: zayavka.device_name,
+                    deviceSerial: zayavka.device_serial,
+                }),
+                deleteMoveTsByRequestNumberSafe(zayavka.request_number, [
+                    "на забор",
+                ]),
+            ]);
         } else if (nextDecisionKind === "replacement") {
             await Promise.all([
                 upsertMoveTsForReplacementDecision({
                     requestNumber: zayavka.request_number,
                     ksaId: zayavka.ksa_id,
                     ksaNumber: zayavka.ksa_number,
-                    requestBasis,
+                    requestBasis: nextRequestBasis,
                     deviceType: nextReplacementDeviceType,
                     deviceName: nextReplacementDeviceName,
                     deviceSerial: nextReplacementDeviceSerial,
@@ -2183,12 +2239,14 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
                     requestNumber: zayavka.request_number,
                     ksaId: zayavka.ksa_id,
                     ksaNumber: zayavka.ksa_number,
-                    requestBasis,
+                    requestBasis: nextRequestBasis,
                     deviceType: zayavka.device_type,
                     deviceName: zayavka.device_name,
                     deviceSerial: zayavka.device_serial,
                 }),
             ]);
+        } else {
+            await deleteMoveTsByRequestNumberSafe(zayavka.request_number);
         }
 
         return res.status(200).json({
