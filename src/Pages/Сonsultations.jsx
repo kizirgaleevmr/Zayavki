@@ -1,3 +1,8 @@
+/**
+ * Заглушка страницы консультаций.
+ *
+ * @returns {JSX.Element} Контент страницы консультаций.
+ */
 export default function ConstantSourceNode() {
     return (
         <>

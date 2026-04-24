@@ -4,10 +4,20 @@ import { clearAuthSession, getAuthHeaders } from "./utils/auth";
 import { getApiUrl } from "./utils/api";
 import logo from "./assets/logo2.png";
 
+/**
+ * Корневой layout приложения с навигацией и выходом пользователя.
+ *
+ * @returns {JSX.Element} Основной каркас интерфейса.
+ */
 function App() {
     const apiUrl = getApiUrl();
     const navigate = useNavigate();
 
+    /**
+     * Завершает пользовательскую сессию на сервере и очищает локальную авторизацию.
+     *
+     * @returns {Promise<void>}
+     */
     async function exitUsers() {
         try {
             await fetch(`${apiUrl}/auth/logout`, {

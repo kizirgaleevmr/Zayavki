@@ -4,10 +4,22 @@ import { getApiUrl } from "../utils/api";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
+/**
+ * Нормализует значение в обрезанную строку.
+ *
+ * @param {unknown} value Исходное значение.
+ * @returns {string} Нормализованная строка.
+ */
 function normalizeValue(value) {
     return String(value || "").trim();
 }
 
+/**
+ * Собирает поисковую строку по записи КСА.
+ *
+ * @param {Record<string, any>} item Запись справочника КСА.
+ * @returns {string} Строка для полнотекстового поиска.
+ */
 function buildSearchText(item) {
     return [
         item?.id_ksa,
@@ -22,6 +34,13 @@ function buildSearchText(item) {
         .join(" ");
 }
 
+/**
+ * Возвращает набор номеров страниц для компактной пагинации.
+ *
+ * @param {number} currentPage Текущая страница.
+ * @param {number} totalPages Общее количество страниц.
+ * @returns {number[]} Номера страниц для отображения.
+ */
 function getPageNumbers(currentPage, totalPages) {
     if (totalPages <= 1) return [1];
 
@@ -36,6 +55,11 @@ function getPageNumbers(currentPage, totalPages) {
     return Array.from(pages).sort((a, b) => a - b);
 }
 
+/**
+ * Страница справочника КСА с поиском и пагинацией.
+ *
+ * @returns {JSX.Element} Интерфейс справочника.
+ */
 export default function ReferenceBook() {
     const apiUrl = getApiUrl();
     const [items, setItems] = useState([]);

@@ -28,6 +28,13 @@ const DECISION_KIND_OPTIONS = [
 ];
 const MOVE_TS_ACT_TYPE_OPTIONS = ["expense", "income"];
 
+/**
+ * Добавляет имя базы данных в Mongo URI, если оно отсутствует в строке подключения.
+ *
+ * @param {string} uri Исходная строка подключения MongoDB.
+ * @param {string} dbName Имя базы данных по умолчанию.
+ * @returns {string} Нормализованная строка подключения.
+ */
 function ensureMongoDbName(uri, dbName) {
     if (/^mongodb(\+srv)?:\/\/[^/]+\/[^?]+/.test(uri)) {
         return uri;
@@ -47,6 +54,12 @@ const allowedOrigins = rawClientOrigin
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+/**
+ * Проверяет, относится ли origin к разрешённым локальным dev-адресам.
+ *
+ * @param {string} origin Origin входящего запроса.
+ * @returns {boolean} `true`, если origin считается безопасным для разработки.
+ */
 function isAllowedDevOrigin(origin) {
     return /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
 }
@@ -73,10 +86,23 @@ const AUTH_LOGIN = process.env.AUTH_LOGIN || "admin";
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD || "123456";
 const authTokens = new Set();
 
+/**
+ * Генерирует случайный токен авторизации.
+ *
+ * @returns {string} Новый токен.
+ */
 function createToken() {
     return crypto.randomBytes(32).toString("hex");
 }
 
+/**
+ * Проверяет bearer-токен и блокирует доступ к защищённым маршрутам без авторизации.
+ *
+ * @param {import("express").Request} req HTTP-запрос.
+ * @param {import("express").Response} res HTTP-ответ.
+ * @param {import("express").NextFunction} next Следующий middleware.
+ * @returns {void | import("express").Response}
+ */
 function authMiddleware(req, res, next) {
     const authHeader = req.headers.authorization || "";
     const [scheme, token] = authHeader.split(" ");
@@ -233,6 +259,13 @@ const DeviceItem = mongoose.model(
 const MoveTs = mongoose.model("move_ts", moveTsScheme, "move_ts");
 const Zayavka = mongoose.model("zayavka", zayavkaScheme);
 
+/**
+ * Формирует номер заявки в виде `YYYYMMDD######`.
+ *
+ * @param {string | number | Date} date Дата создания заявки.
+ * @param {number} sequenceNumber Порядковый номер в последовательности.
+ * @returns {string} Сформированный номер заявки.
+ */
 function formatRequestNumber(date, sequenceNumber) {
     const valueDate = date instanceof Date ? date : new Date(date);
     const year = valueDate.getFullYear();
@@ -243,12 +276,23 @@ function formatRequestNumber(date, sequenceNumber) {
     return `${year}${month}${day}${sequence}`;
 }
 
+/**
+ * Извлекает числовую последовательность из номера заявки.
+ *
+ * @param {unknown} requestNumber Номер заявки.
+ * @returns {number} Порядковый номер или `0`, если распознать не удалось.
+ */
 function parseRequestSequence(requestNumber) {
     const normalized = String(requestNumber || "").trim();
     const match = normalized.match(/(\d{6})$/);
     return match ? Number(match[1]) : 0;
 }
 
+/**
+ * Возвращает максимальный порядковый номер среди существующих заявок.
+ *
+ * @returns {Promise<number>} Максимальный номер последовательности.
+ */
 async function getMaxRequestSequenceSafe() {
     const zayavki = await fetchZayavkiSafe();
 
@@ -258,12 +302,23 @@ async function getMaxRequestSequenceSafe() {
     }, 0);
 }
 
+/**
+ * Генерирует следующий номер заявки для указанной даты.
+ *
+ * @param {string | number | Date} date Дата новой заявки.
+ * @returns {Promise<string>} Следующий номер заявки.
+ */
 async function getNextRequestNumber(date) {
     const valueDate = date instanceof Date ? date : new Date(date);
     const nextSequenceNumber = (await getMaxRequestSequenceSafe()) + 1;
     return formatRequestNumber(valueDate, nextSequenceNumber);
 }
 
+/**
+ * Безопасно получает список регионов из основной или резервной коллекции.
+ *
+ * @returns {Promise<Record<string, any>[]>} Список регионов.
+ */
 async function fetchRegionsSafe() {
     const regions = await Region.find({});
     if (regions.length > 0) return regions;
@@ -275,6 +330,12 @@ async function fetchRegionsSafe() {
     return db.collection("regions").find({}).toArray();
 }
 
+/**
+ * Безопасно получает список КСА с учётом доступных коллекций.
+ *
+ * @param {Record<string, any>} [filter={}] Фильтр MongoDB.
+ * @returns {Promise<Record<string, any>[]>} Список КСА.
+ */
 async function fetchKsaSafe(filter = {}) {
     const ksa = await Ksa.find(filter);
     if (ksa.length > 0) return ksa;
@@ -286,6 +347,11 @@ async function fetchKsaSafe(filter = {}) {
     return db.collection("ksas").find(filter).toArray();
 }
 
+/**
+ * Получает список типов устройств из основной или совместимой коллекции.
+ *
+ * @returns {Promise<Record<string, any>[]>} Список типов устройств.
+ */
 async function fetchDeviceTypesSafe() {
     const fromModel = await DeviceType.find({}).sort({ id_type: 1 }).lean();
     if (fromModel.length > 0) return fromModel;
@@ -307,6 +373,12 @@ async function fetchDeviceTypesSafe() {
     return [];
 }
 
+/**
+ * Получает список наименований устройств по типу.
+ *
+ * @param {unknown} typeId Идентификатор типа устройства.
+ * @returns {Promise<Record<string, any>[]>} Список наименований устройств.
+ */
 async function fetchDeviceNamesSafe(typeId) {
     const normalizedTypeId = String(typeId || "").trim();
     if (!normalizedTypeId) return [];
@@ -340,6 +412,12 @@ async function fetchDeviceNamesSafe(typeId) {
     return [];
 }
 
+/**
+ * Получает список серийных номеров устройств по идентификатору наименования.
+ *
+ * @param {unknown} nameId Идентификатор наименования устройства.
+ * @returns {Promise<Record<string, any>[]>} Список устройств/серийных номеров.
+ */
 async function fetchDeviceSerialsSafe(nameId) {
     const normalizedNameId = String(nameId || "").trim();
     if (!normalizedNameId) return [];
@@ -373,6 +451,12 @@ async function fetchDeviceSerialsSafe(nameId) {
     return [];
 }
 
+/**
+ * Ищет устройство по серийному номеру в основной или резервной коллекции.
+ *
+ * @param {unknown} serialNumber Серийный номер устройства.
+ * @returns {Promise<Record<string, any> | null>} Найденное устройство или `null`.
+ */
 async function findDeviceItemBySerialSafe(serialNumber) {
     const normalizedSerial = String(serialNumber || "").trim();
     if (!normalizedSerial) return null;
@@ -398,6 +482,11 @@ async function findDeviceItemBySerialSafe(serialNumber) {
     return null;
 }
 
+/**
+ * Получает список движений техники и обогащает их основанием заявки.
+ *
+ * @returns {Promise<Record<string, any>[]>} Список перемещений техники.
+ */
 async function fetchMoveTsSafe() {
     const fromModel = await MoveTs.find({})
         .sort({ move_date: -1, createdAt: -1 })
@@ -423,6 +512,12 @@ async function fetchMoveTsSafe() {
     return [];
 }
 
+/**
+ * Формирует запрос по `_id` для записи движения техники.
+ *
+ * @param {unknown} id Идентификатор записи.
+ * @returns {Record<string, any> | null} Mongo-запрос по `_id` или `null`.
+ */
 function buildMoveTsIdQuery(id) {
     const normalizedId = String(id || "").trim();
     if (!normalizedId) return null;
@@ -434,10 +529,22 @@ function buildMoveTsIdQuery(id) {
     return { _id: normalizedId };
 }
 
+/**
+ * Нормализует строковое значение для записей движения техники.
+ *
+ * @param {unknown} value Исходное значение.
+ * @returns {string} Нормализованная строка.
+ */
 function normalizeMoveTsString(value) {
     return String(value || "").trim();
 }
 
+/**
+ * Подставляет в записи движения техники основание связанной заявки.
+ *
+ * @param {Record<string, any>[]} [items=[]] Исходные записи.
+ * @returns {Promise<Record<string, any>[]>} Обогащённые записи.
+ */
 async function enrichMoveTsItemsWithRequestBasis(items = []) {
     if (!Array.isArray(items) || items.length === 0) {
         return [];
@@ -464,6 +571,12 @@ async function enrichMoveTsItemsWithRequestBasis(items = []) {
     });
 }
 
+/**
+ * Приводит тип акта движения техники к внутреннему значению.
+ *
+ * @param {unknown} value Исходное значение типа акта.
+ * @returns {"expense" | "income" | ""} Нормализованный тип акта.
+ */
 function normalizeMoveTsActType(value) {
     const normalized = String(value || "").trim().toLowerCase();
 
@@ -488,6 +601,12 @@ function normalizeMoveTsActType(value) {
     return "";
 }
 
+/**
+ * Определяет тип акта по локации отправления.
+ *
+ * @param {unknown} fromLocation Значение `from_location`.
+ * @returns {"expense" | "income" | ""} Определённый тип акта.
+ */
 function inferMoveTsActTypeFromLocation(fromLocation) {
     const normalizedLocation = normalizeMoveTsString(fromLocation).toLowerCase();
     if (!normalizedLocation) return "";
@@ -495,6 +614,18 @@ function inferMoveTsActTypeFromLocation(fromLocation) {
     return normalizedLocation === "сц бти" ? "expense" : "income";
 }
 
+/**
+ * Разбирает номер акта по шаблону `регион/номер-буква-год`.
+ *
+ * @param {unknown} value Номер акта.
+ * @returns {{
+ *   regionNumber: string,
+ *   sequenceNumber: number,
+ *   letter: string,
+ *   yearShort: string,
+ *   actType: "expense" | "income"
+ * } | null} Разобранные части номера или `null`.
+ */
 function parseMoveTsActNumber(value) {
     const normalized = normalizeMoveTsString(value);
     const match = normalized.match(/^([^/]+)\/(\d+)-([РП])-([0-9]{2})$/);
@@ -510,10 +641,22 @@ function parseMoveTsActNumber(value) {
     };
 }
 
+/**
+ * Возвращает буквенный код типа акта.
+ *
+ * @param {unknown} actType Тип акта.
+ * @returns {"П" | "Р"} Буквенный код для номера акта.
+ */
 function getMoveTsActLetter(actType) {
     return normalizeMoveTsActType(actType) === "income" ? "П" : "Р";
 }
 
+/**
+ * Нормализует режим назначения номера акта.
+ *
+ * @param {unknown} value Исходное значение режима.
+ * @returns {"new" | "existing" | "manual" | ""} Нормализованный режим.
+ */
 function normalizeMoveTsActAssignmentMode(value) {
     const normalized = String(value || "").trim().toLowerCase();
 
@@ -524,6 +667,13 @@ function normalizeMoveTsActAssignmentMode(value) {
     return "";
 }
 
+/**
+ * Приводит дату движения техники к объекту `Date`.
+ *
+ * @param {unknown} value Исходное значение даты.
+ * @param {Date | null} fallbackValue Значение по умолчанию.
+ * @returns {Date | null} Валидная дата или fallback.
+ */
 function normalizeMoveTsDate(value, fallbackValue) {
     if (!value) return fallbackValue;
 
@@ -535,6 +685,12 @@ function normalizeMoveTsDate(value, fallbackValue) {
     return parsed;
 }
 
+/**
+ * Нормализует количество единиц техники.
+ *
+ * @param {unknown} value Исходное количество.
+ * @returns {number | null} Округлённое положительное количество или `null`.
+ */
 function normalizeMoveTsQuantity(value) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -808,15 +964,33 @@ async function fetchZayavkiSafe() {
     return [];
 }
 
+/**
+ * Проверяет, считается ли решение по заявке заполненным.
+ *
+ * @param {unknown} decision Текст решения.
+ * @returns {boolean} `true`, если решение присутствует и не равно `-`.
+ */
 function isResolvedDecision(decision) {
     const value = String(decision || "").trim();
     return value.length > 0 && value !== "-";
 }
 
+/**
+ * Экранирует спецсимволы строки для безопасной подстановки в регулярное выражение.
+ *
+ * @param {string} value Исходная строка.
+ * @returns {string} Экранированная строка.
+ */
 function escapeRegex(value) {
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Приводит срочность заявки к одному из допустимых внутренних значений.
+ *
+ * @param {unknown} value Исходное значение срочности.
+ * @returns {"urgent" | "not_urgent"} Нормализованная срочность.
+ */
 function normalizeUrgency(value) {
     const normalized = String(value || "")
         .trim()
@@ -824,6 +998,12 @@ function normalizeUrgency(value) {
     return normalized === "urgent" ? "urgent" : "not_urgent";
 }
 
+/**
+ * Нормализует основание заявки.
+ *
+ * @param {unknown} value Исходное значение основания заявки.
+ * @returns {string} Каноническое значение основания или пустая строка.
+ */
 function normalizeRequestBasis(value) {
     const normalized = String(value || "").trim().toLowerCase();
     const match = REQUEST_BASIS_OPTIONS.find(
@@ -833,6 +1013,12 @@ function normalizeRequestBasis(value) {
     return match || "";
 }
 
+/**
+ * Нормализует тип решения по заявке.
+ *
+ * @param {unknown} value Исходное значение типа решения.
+ * @returns {string} Каноническое значение типа решения или пустая строка.
+ */
 function normalizeDecisionKind(value) {
     const normalized = String(value || "").trim().toLowerCase();
     const match = DECISION_KIND_OPTIONS.find(
@@ -842,6 +1028,13 @@ function normalizeDecisionKind(value) {
     return match || "";
 }
 
+/**
+ * Возвращает номер КСА по идентификатору с fallback на уже известное значение.
+ *
+ * @param {unknown} ksaId Идентификатор КСА.
+ * @param {string} [fallbackNumber=""] Резервный номер КСА.
+ * @returns {Promise<string>} Номер КСА.
+ */
 async function getKsaNumberSafe(ksaId, fallbackNumber = "") {
     const normalizedKsaId = String(ksaId || "").trim();
     if (!normalizedKsaId) {
@@ -857,6 +1050,20 @@ async function getKsaNumberSafe(ksaId, fallbackNumber = "") {
     );
 }
 
+/**
+ * Создаёт или обновляет запись движения техники для решения по дооснащению.
+ *
+ * @param {{
+ *   requestNumber: string,
+ *   ksaId: string,
+ *   ksaNumber: string,
+ *   deviceType: string,
+ *   deviceName: string,
+ *   deviceSerial: string,
+ *   requestBasis: string
+ * }} params Параметры заявки.
+ * @returns {Promise<Record<string, any> | null>} Запись движения техники или `null`.
+ */
 async function upsertMoveTsForSupplementDecision({
     requestNumber,
     ksaId,
@@ -906,6 +1113,21 @@ async function upsertMoveTsForSupplementDecision({
     );
 }
 
+/**
+ * Создаёт или обновляет расходное движение техники для решения "Замена".
+ *
+ * @param {{
+ *   requestNumber: string,
+ *   ksaId: string,
+ *   ksaNumber: string,
+ *   requestBasis: string,
+ *   deviceType: string,
+ *   deviceName: string,
+ *   deviceSerial: string,
+ *   invNumber: string
+ * }} params Параметры движения техники.
+ * @returns {Promise<Record<string, any> | null>} Запись движения техники.
+ */
 async function upsertMoveTsForReplacementDecision({
     requestNumber,
     ksaId,
@@ -949,6 +1171,20 @@ async function upsertMoveTsForReplacementDecision({
     );
 }
 
+/**
+ * Создаёт или обновляет входящее движение техники для забора оборудования.
+ *
+ * @param {{
+ *   requestNumber: string,
+ *   ksaId: string,
+ *   ksaNumber: string,
+ *   requestBasis: string,
+ *   deviceType: string,
+ *   deviceName: string,
+ *   deviceSerial: string
+ * }} params Параметры движения техники.
+ * @returns {Promise<Record<string, any> | null>} Запись движения техники.
+ */
 async function upsertMoveTsForPickupDecision({
     requestNumber,
     ksaId,
@@ -994,16 +1230,36 @@ async function upsertMoveTsForPickupDecision({
     );
 }
 
+/**
+ * Возвращает имя автора заявки независимо от варианта поля в документе.
+ *
+ * @param {Record<string, any>} item Документ заявки.
+ * @returns {string} Имя автора или пустая строка.
+ */
 function getCreatedByValue(item) {
     return item?.created_by || item?.createdBy || item?.author || "";
 }
 
+/**
+ * Проверяет, содержит ли значение поисковую подстроку.
+ *
+ * @param {unknown} value Проверяемое значение.
+ * @param {string} normalizedSearch Уже нормализованный поисковый запрос.
+ * @returns {boolean} `true`, если подстрока найдена.
+ */
 function matchesSearchTerm(value, normalizedSearch) {
     return String(value || "")
         .toLowerCase()
         .includes(normalizedSearch);
 }
 
+/**
+ * Находит идентификаторы КСА, совпадающих с поисковым запросом.
+ *
+ * @param {Record<string, any>[]} ksaList Список КСА.
+ * @param {string} search Поисковый запрос.
+ * @returns {string[]} Список идентификаторов КСА.
+ */
 function getMatchingKsaIds(ksaList, search) {
     const normalizedSearch = String(search || "")
         .trim()
@@ -1024,6 +1280,13 @@ function getMatchingKsaIds(ksaList, search) {
         .filter(Boolean);
 }
 
+/**
+ * Проверяет, соответствует ли заявка поисковому запросу.
+ *
+ * @param {Record<string, any>} item Документ заявки.
+ * @param {string} search Поисковый запрос.
+ * @returns {boolean} `true`, если заявка подходит под поиск.
+ */
 function matchesZayavkaSearch(item, search) {
     const normalizedSearch = String(search || "")
         .trim()
@@ -1045,6 +1308,14 @@ function matchesZayavkaSearch(item, search) {
     ].some((value) => matchesSearchTerm(value, normalizedSearch));
 }
 
+/**
+ * Обогащает заявку вычисленными данными региона, КСА и срочности.
+ *
+ * @param {Record<string, any>} zayavka Исходная заявка.
+ * @param {Map<string, Record<string, any>>} regionById Карта регионов по идентификатору.
+ * @param {Map<string, Record<string, any>>} ksaById Карта КСА по идентификатору.
+ * @returns {Record<string, any>} Обогащённая заявка.
+ */
 function enrichZayavka(zayavka, regionById, ksaById) {
     const regionItem = regionById.get(String(zayavka.region_id));
     const ksaItem = ksaById.get(String(zayavka.ksa_id));

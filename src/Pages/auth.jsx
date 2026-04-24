@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { isAuthenticated, setAuthSession } from "../utils/auth";
 import { getApiUrl } from "../utils/api";
 
+/**
+ * Страница авторизации пользователя.
+ *
+ * @returns {JSX.Element} Форма входа в систему.
+ */
 export default function FormAuth() {
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
@@ -17,6 +22,12 @@ export default function FormAuth() {
         }
     }, [navigate]);
 
+    /**
+     * Отправляет форму авторизации и сохраняет сессию при успешном входе.
+     *
+     * @param {React.FormEvent<HTMLFormElement>} evt Событие отправки формы.
+     * @returns {Promise<void>}
+     */
     async function submitClick(evt) {
         evt.preventDefault();
         setError("");

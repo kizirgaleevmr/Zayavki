@@ -1,5 +1,10 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+/**
+ * Контейнер раздела заявок с вложенной навигацией между созданием и списком.
+ *
+ * @returns {JSX.Element} Раздел заявок.
+ */
 export default function ZayavkiPage() {
     return (
         <>

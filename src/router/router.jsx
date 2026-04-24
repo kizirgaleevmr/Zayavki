@@ -17,6 +17,12 @@ import Consultation from "../Pages/Сonsultations";
 import KnowledgeBase from "../Pages/KnowledgeBase";
 import { KnbDoska } from "../Pages/KnbDoska";
 import MoveTs from "../Pages/MoveTs";
+
+/**
+ * Главный hash-router приложения с защищёнными и публичными маршрутами.
+ *
+ * @type {import("react-router-dom").Router}
+ */
 const route = createHashRouter(
     createRoutesFromElements(
         <>

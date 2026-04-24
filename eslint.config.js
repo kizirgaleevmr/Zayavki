@@ -4,7 +4,12 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
-export default defineConfig([
+/**
+ * Базовая конфигурация ESLint для клиентской части проекта на React и Vite.
+ *
+ * @type {import('eslint').Linter.Config[]}
+ */
+const eslintConfig = defineConfig([
   globalIgnores(['dist']),
   {
     files: ['**/*.{js,jsx}'],
@@ -27,3 +32,5 @@ export default defineConfig([
     },
   },
 ])
+
+export default eslintConfig

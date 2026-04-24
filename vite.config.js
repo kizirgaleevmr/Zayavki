@@ -10,7 +10,19 @@ export default defineConfig({
                 target: "https://zayavki-b970.onrender.com",
                 changeOrigin: true,
                 secure: true,
+                /**
+                 * Удаляет dev-префикс `/api` перед проксированием запроса на backend.
+                 *
+                 * @param {string} path Исходный путь запроса.
+                 * @returns {string} Путь без локального префикса.
+                 */
                 rewrite: (path) => path.replace(/^\/api/, ""),
+                /**
+                 * Удаляет заголовок `origin` у проксируемых запросов.
+                 *
+                 * @param {import("http-proxy").Server} proxy Экземпляр прокси-сервера.
+                 * @returns {void}
+                 */
                 configure: (proxy) => {
                     proxy.on("proxyReq", (proxyReq) => {
                         proxyReq.removeHeader("origin");

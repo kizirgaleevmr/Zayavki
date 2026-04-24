@@ -36,6 +36,14 @@ const INITIAL_ZAYAVKI_COLUMN_WIDTHS = ZAYAVKI_TABLE_COLUMNS.reduce(
 const COLUMN_WIDTHS_STORAGE_KEY = "zayavki.table.column-widths.v1";
 const MODAL_SIZES_STORAGE_KEY = "zayavki.modal-sizes.v1";
 
+/**
+ * Читает JSON-значение из `localStorage` с безопасным fallback.
+ *
+ * @template T
+ * @param {string} key Ключ в локальном хранилище.
+ * @param {T} fallback Значение по умолчанию.
+ * @returns {T} Распарсенное значение или fallback.
+ */
 function readStorageJson(key, fallback) {
     if (typeof window === "undefined") return fallback;
 
@@ -47,6 +55,11 @@ function readStorageJson(key, fallback) {
     }
 }
 
+/**
+ * Возвращает стартовые ширины колонок таблицы заявок.
+ *
+ * @returns {Record<string, number>} Карта ширин колонок.
+ */
 function getInitialColumnWidths() {
     const storedWidths = readStorageJson(COLUMN_WIDTHS_STORAGE_KEY, null);
     if (!storedWidths || typeof storedWidths !== "object") {
@@ -65,6 +78,11 @@ function getInitialColumnWidths() {
     );
 }
 
+/**
+ * Возвращает сохранённые размеры модальных окон, если они валидны.
+ *
+ * @returns {Record<string, { width: number, height: number }>} Карта размеров модалок.
+ */
 function getInitialModalSizes() {
     const storedSizes = readStorageJson(MODAL_SIZES_STORAGE_KEY, null);
     if (!storedSizes || typeof storedSizes !== "object") {
@@ -83,6 +101,11 @@ function getInitialModalSizes() {
     }, {});
 }
 
+/**
+ * Страница просмотра, фильтрации и редактирования заявок.
+ *
+ * @returns {JSX.Element} Интерфейс списка заявок.
+ */
 export default function AllZayavki() {
     // Получение пользователя из localStorage
     let user = null;
@@ -171,10 +194,22 @@ export default function AllZayavki() {
         not_urgent: "Не срочно",
     };
 
+    /**
+     * Возвращает локализованное название типа устройства.
+     *
+     * @param {string} value Внутреннее значение типа устройства.
+     * @returns {string} Подпись для интерфейса.
+     */
     function getDeviceTypeText(value) {
         return deviceTypeLabels[value] || value || "-";
     }
 
+    /**
+     * Нормализует отображаемое значение основания заявки.
+     *
+     * @param {string} value Значение основания заявки.
+     * @returns {string} Подпись основания для интерфейса.
+     */
     function getRequestBasisLabel(value) {
         return REQUEST_BASIS_OPTIONS.includes(value) ? value : value || "-";
     }

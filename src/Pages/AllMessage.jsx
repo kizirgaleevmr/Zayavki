@@ -1,3 +1,8 @@
+/**
+ * Заглушка страницы со всеми сообщениями.
+ *
+ * @returns {JSX.Element} Контент страницы сообщений.
+ */
 export default function AllMessage() {
     return (
         <section className="container">

@@ -1004,6 +1004,13 @@ function escapeHtml(value) {
 // </html>`;
 // }
 
+/**
+ * Сравнивает записи перемещения по номеру акта с учётом структуры номера.
+ *
+ * @param {Record<string, any>} left Левая запись перемещения.
+ * @param {Record<string, any>} right Правая запись перемещения.
+ * @returns {number} Результат сравнения для сортировки.
+ */
 function compareActNumbers(left, right) {
     const leftParsed = parseActNumber(left.act_number);
     const rightParsed = parseActNumber(right.act_number);
@@ -1029,6 +1036,13 @@ function compareActNumbers(left, right) {
     });
 }
 
+/**
+ * Возвращает значение поля, используемое при сортировке таблицы перемещений.
+ *
+ * @param {Record<string, any>} item Запись перемещения.
+ * @param {string} key Ключ колонки.
+ * @returns {string | number} Значение для сортировки.
+ */
 function getMoveTsSortValue(item, key) {
     switch (key) {
         case "move_date":
@@ -1042,10 +1056,21 @@ function getMoveTsSortValue(item, key) {
     }
 }
 
+/**
+ * Определяет стартовое направление сортировки для указанной колонки.
+ *
+ * @param {string} key Ключ колонки.
+ * @returns {"asc" | "desc"} Направление сортировки по умолчанию.
+ */
 function getMoveTsInitialSortDirection(key) {
     return key === "move_date" || key === "quantity" ? "desc" : "asc";
 }
 
+/**
+ * Страница движения техники с редактированием записей и генерацией актов.
+ *
+ * @returns {JSX.Element} Интерфейс списка перемещений техники.
+ */
 export default function MoveTs() {
     const apiUrl = getApiUrl();
     const requestMetaByNumberRef = useRef(new Map());

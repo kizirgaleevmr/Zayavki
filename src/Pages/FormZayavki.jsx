@@ -11,6 +11,12 @@ import {
 } from "../utils/sort";
 
 const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
+
+/**
+ * Страница создания новой заявки на ремонт или дооснащение техники.
+ *
+ * @returns {JSX.Element} Форма создания заявки.
+ */
 export default function FormZayavki() {
     const navigate = useNavigate();
     const [reg, setReg] = useState([]);
@@ -38,6 +44,12 @@ export default function FormZayavki() {
     });
     const apiUrl = getApiUrl();
 
+    /**
+     * Возвращает текстовое название типа устройства по его идентификатору.
+     *
+     * @param {string} typeId Идентификатор типа устройства.
+     * @returns {string} Название типа устройства.
+     */
     function getDeviceTypeLabel(typeId) {
         const match = deviceTypes.find(
             (item) =>
@@ -47,6 +59,12 @@ export default function FormZayavki() {
         return String(match?.type || "").trim();
     }
 
+    /**
+     * Обновляет выбранный регион и сбрасывает зависящие от него поля.
+     *
+     * @param {React.ChangeEvent<HTMLSelectElement>} evt Событие изменения select.
+     * @returns {void}
+     */
     function checkReg(evt) {
         const selectedId = evt.target.value;
         const selectedOption = evt.target.options[evt.target.selectedIndex];
@@ -60,10 +78,22 @@ export default function FormZayavki() {
         setSelectedKsa("");
     }
 
+    /**
+     * Сохраняет выбранный идентификатор КСА.
+     *
+     * @param {React.ChangeEvent<HTMLSelectElement>} evt Событие изменения select.
+     * @returns {void}
+     */
     function checkKsa(evt) {
         setSelectedKsa(evt.target.value);
     }
 
+    /**
+     * Обновляет выбранный тип устройства и сбрасывает связанные поля.
+     *
+     * @param {React.ChangeEvent<HTMLSelectElement>} evt Событие изменения select.
+     * @returns {void}
+     */
     function checkDeviceType(evt) {
         setSelectedDeviceTypeId(evt.target.value);
         setSelectedDeviceNameId("");
@@ -72,6 +102,12 @@ export default function FormZayavki() {
         setDeviceSerials([]);
     }
 
+    /**
+     * Обновляет выбранное наименование устройства и пытается найти его идентификатор.
+     *
+     * @param {React.ChangeEvent<HTMLInputElement>} evt Событие изменения поля.
+     * @returns {void}
+     */
     function checkDeviceName(evt) {
         const nextNameValue = evt.target.value;
         const selectedItem = deviceNames.find(
@@ -91,10 +127,22 @@ export default function FormZayavki() {
         setSelectedDeviceSerial("");
     }
 
+    /**
+     * Сохраняет введённый или выбранный серийный номер устройства.
+     *
+     * @param {React.ChangeEvent<HTMLInputElement>} evt Событие изменения поля.
+     * @returns {void}
+     */
     function checkDeviceSerial(evt) {
         setSelectedDeviceSerial(evt.target.value);
     }
 
+    /**
+     * Преобразует файл в data URL для отправки вместе с заявкой.
+     *
+     * @param {File} file Загружаемый файл.
+     * @returns {Promise<string | ArrayBuffer | null>} Data URL содержимого файла.
+     */
     function fileToDataUrl(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -104,6 +152,12 @@ export default function FormZayavki() {
         });
     }
 
+    /**
+     * Формирует payload и отправляет заявку на сервер.
+     *
+     * @param {React.FormEvent<HTMLFormElement>} evt Событие отправки формы.
+     * @returns {Promise<void>}
+     */
     async function handleSubmit(evt) {
         evt.preventDefault();
         setSubmitMessage("");

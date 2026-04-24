@@ -1,3 +1,8 @@
+/**
+ * Заглушка страницы чата.
+ *
+ * @returns {JSX.Element} Контент страницы чата.
+ */
 export default function Chat() {
     return (
         <section className="container">
