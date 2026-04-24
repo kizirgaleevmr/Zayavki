@@ -1735,7 +1735,7 @@ export default function MoveTs() {
     }
 
     return (
-        <section className="container">
+        <section className="container move-ts-page">
             <div className="box">
                 <div className="is-flex is-justify-content-space-between is-align-items-center mb-4">
                     <div>
@@ -1753,14 +1753,14 @@ export default function MoveTs() {
                 ) : items.length === 0 ? (
                     <p>Записей движения техники пока нет.</p>
                 ) : (
-                    <div className="table-container">
-                        <table className="table is-fullwidth is-striped is-hoverable">
+                    <div className="table-container move-ts-table-container">
+                        <table className="table is-fullwidth is-striped is-hoverable move-ts-table">
                             <thead>
                                 <tr>
                                     <th>№</th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("request_number")
                                             }
@@ -1774,7 +1774,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("act_number")
                                             }
@@ -1788,7 +1788,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() => handleSort("move_date")}
                                             type="button"
                                         >
@@ -1797,7 +1797,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() => handleSort("status")}
                                             type="button"
                                         >
@@ -1806,7 +1806,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("delivery_method")
                                             }
@@ -1820,7 +1820,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("request_basis")
                                             }
@@ -1834,7 +1834,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() => handleSort("note")}
                                             type="button"
                                         >
@@ -1846,7 +1846,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("device_type")
                                             }
@@ -1860,7 +1860,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("device_name")
                                             }
@@ -1874,7 +1874,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("device_serial")
                                             }
@@ -1888,7 +1888,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("inv_number")
                                             }
@@ -1902,7 +1902,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("from_location")
                                             }
@@ -1916,7 +1916,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("to_location")
                                             }
@@ -1930,7 +1930,7 @@ export default function MoveTs() {
                                     </th>
                                     <th>
                                         <button
-                                            className="button is-white is-small px-0"
+                                            className="move-ts-sort-button"
                                             onClick={() =>
                                                 handleSort("quantity")
                                             }

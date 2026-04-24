@@ -162,9 +162,9 @@ export default function ReferenceBook() {
     }, [page, totalPages]);
 
     return (
-        <section className="container">
+        <section className="container reference-book-page">
             <div className="box">
-                <div className="is-flex is-justify-content-space-between is-align-items-flex-end is-flex-wrap-wrap mb-4">
+                <div className="is-flex is-justify-content-space-between is-align-items-flex-end is-flex-wrap-wrap mb-4 reference-book-toolbar">
                     <div>
                         <h1 className="title is-4 mb-2">Справочник КСА</h1>
                         <p className="has-text-grey">
@@ -212,8 +212,8 @@ export default function ReferenceBook() {
                     <p>По вашему запросу записи КСА не найдены.</p>
                 ) : (
                     <>
-                        <div className="table-container">
-                            <table className="table is-fullwidth is-striped is-hoverable">
+                        <div className="table-container reference-book-table-container">
+                            <table className="table is-fullwidth is-striped is-hoverable reference-book-table">
                                 <thead>
                                     <tr>
                                         <th>№</th>
