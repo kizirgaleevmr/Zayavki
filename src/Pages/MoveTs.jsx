@@ -330,12 +330,11 @@ function buildExpenseActDocumentXml(templateXml, payload) {
     }
 
     const titleReplacement = parseWordFragment(
-        buildWordParagraphXml(`АКТ № ${actNumber}`, {
+        buildWordParagraphXml(`Акт № ${actNumber}`, {
             bold: true,
             size: 36,
-            left: "5387",
-            hanging: "347",
             before: "30",
+            align: "center",
         }),
         xmlDocument,
     )[0];
@@ -403,11 +402,11 @@ function buildIncomeActDocumentXml(templateXml, payload) {
     }
 
     const titleReplacement = parseWordFragment(
-        buildWordParagraphXml(`АКТ № ${actNumber}`, {
+        buildWordParagraphXml(`Акт № ${actNumber}`, {
             bold: true,
             size: 36,
-            left: "5400",
             before: "30",
+            align: "center",
         }),
         xmlDocument,
     )[0];
