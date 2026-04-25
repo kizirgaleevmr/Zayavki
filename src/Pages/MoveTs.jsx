@@ -1814,10 +1814,40 @@ export default function MoveTs() {
                                     <th>
                                         <button
                                             className="move-ts-sort-button"
-                                            onClick={() => handleSort("move_date")}
+                                            onClick={() =>
+                                                handleSort("move_date")
+                                            }
                                             type="button"
                                         >
                                             {getSortLabel("move_date", "Дата")}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="move-ts-sort-button"
+                                            onClick={() =>
+                                                handleSort("from_location")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "from_location",
+                                                "Откуда",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="move-ts-sort-button"
+                                            onClick={() =>
+                                                handleSort("to_location")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "to_location",
+                                                "Куда",
+                                            )}
                                         </button>
                                     </th>
                                     <th>
@@ -1843,32 +1873,7 @@ export default function MoveTs() {
                                             )}
                                         </button>
                                     </th>
-                                    <th>
-                                        <button
-                                            className="move-ts-sort-button"
-                                            onClick={() =>
-                                                handleSort("request_basis")
-                                            }
-                                            type="button"
-                                        >
-                                            {getSortLabel(
-                                                "request_basis",
-                                                "Основание заявки",
-                                            )}
-                                        </button>
-                                    </th>
-                                    <th>
-                                        <button
-                                            className="move-ts-sort-button"
-                                            onClick={() => handleSort("note")}
-                                            type="button"
-                                        >
-                                            {getSortLabel(
-                                                "note",
-                                                "Примечание",
-                                            )}
-                                        </button>
-                                    </th>
+
                                     <th>
                                         <button
                                             className="move-ts-sort-button"
@@ -1925,34 +1930,7 @@ export default function MoveTs() {
                                             )}
                                         </button>
                                     </th>
-                                    <th>
-                                        <button
-                                            className="move-ts-sort-button"
-                                            onClick={() =>
-                                                handleSort("from_location")
-                                            }
-                                            type="button"
-                                        >
-                                            {getSortLabel(
-                                                "from_location",
-                                                "Откуда",
-                                            )}
-                                        </button>
-                                    </th>
-                                    <th>
-                                        <button
-                                            className="move-ts-sort-button"
-                                            onClick={() =>
-                                                handleSort("to_location")
-                                            }
-                                            type="button"
-                                        >
-                                            {getSortLabel(
-                                                "to_location",
-                                                "Куда",
-                                            )}
-                                        </button>
-                                    </th>
+
                                     <th>
                                         <button
                                             className="move-ts-sort-button"
@@ -1965,6 +1943,29 @@ export default function MoveTs() {
                                                 "quantity",
                                                 "Количество",
                                             )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="move-ts-sort-button"
+                                            onClick={() =>
+                                                handleSort("request_basis")
+                                            }
+                                            type="button"
+                                        >
+                                            {getSortLabel(
+                                                "request_basis",
+                                                "Основание заявки",
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th>
+                                        <button
+                                            className="move-ts-sort-button"
+                                            onClick={() => handleSort("note")}
+                                            type="button"
+                                        >
+                                            {getSortLabel("note", "Примечание")}
                                         </button>
                                     </th>
                                 </tr>
@@ -1994,17 +1995,18 @@ export default function MoveTs() {
                                         <td>{item.request_number || "-"}</td>
                                         <td>{item.act_number || "-"}</td>
                                         <td>{formatDate(item.move_date)}</td>
+                                        <td>{item.from_location || "-"}</td>
+                                        <td>{item.to_location || "-"}</td>
                                         <td>{item.status || "-"}</td>
                                         <td>{item.delivery_method || "-"}</td>
-                                        <td>{item.request_basis || "-"}</td>
-                                        <td>{item.note || "-"}</td>
                                         <td>{item.device_type || "-"}</td>
                                         <td>{item.device_name || "-"}</td>
                                         <td>{item.device_serial || "-"}</td>
                                         <td>{item.inv_number || "-"}</td>
-                                        <td>{item.from_location || "-"}</td>
-                                        <td>{item.to_location || "-"}</td>
+
                                         <td>{item.quantity ?? "-"}</td>
+                                        <td>{item.request_basis || "-"}</td>
+                                        <td>{item.note || "-"}</td>
                                     </tr>
                                 ))}
                             </tbody>
