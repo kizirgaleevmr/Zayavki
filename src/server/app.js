@@ -3,9 +3,13 @@ import mongoose from "mongoose";
 import cors from "cors";
 import crypto from "crypto";
 import dotenv from "dotenv";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config();
-dotenv.config({ path: "./src/server/config.env" });
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+dotenv.config({ path: resolve(__dirname, "../../.env") });
+dotenv.config({ path: resolve(__dirname, "config.env") });
 
 const Schema = mongoose.Schema;
 const app = express();
@@ -2326,6 +2330,8 @@ app.get("/ksa", authMiddleware, async (req, res) => {
 
 async function main() {
     let connected = false;
+
+    console.log("[Mongo] using MONGO_URI:", MONGO_URI);
 
     try {
         await mongoose.connect(MONGO_URI, MONGO_CONNECT_OPTIONS);
