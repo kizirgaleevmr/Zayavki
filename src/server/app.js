@@ -13,19 +13,15 @@ app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 const PORT = Number(process.env.PORT) || 3002;
-const DEFAULT_DB_NAME = "zayzvki";
+const DEFAULT_DB_NAME = "zayavki";
 const MONGO_URI_RAW =
-    process.env.ATLAS_URI || "mongodb://127.0.0.1:27017/zayzvki";
-const FALLBACK_LOCAL_URI = "mongodb://127.0.0.1:27017/zayzvki";
+    process.env.ATLAS_URI || "mongodb://127.0.0.1:27017/zayavki";
+const FALLBACK_LOCAL_URI = "mongodb://127.0.0.1:27017/zayavki";
 const MONGO_CONNECT_OPTIONS = {
     serverSelectionTimeoutMS: 5000,
 };
 const REQUEST_BASIS_OPTIONS = ["Дооснащение", "Ремонт тс"];
-const DECISION_KIND_OPTIONS = [
-    "supplement",
-    "repair_on_site",
-    "replacement",
-];
+const DECISION_KIND_OPTIONS = ["supplement", "repair_on_site", "replacement"];
 const MOVE_TS_ACT_TYPE_OPTIONS = ["expense", "income"];
 
 /**
@@ -578,7 +574,9 @@ async function enrichMoveTsItemsWithRequestBasis(items = []) {
  * @returns {"expense" | "income" | ""} Нормализованный тип акта.
  */
 function normalizeMoveTsActType(value) {
-    const normalized = String(value || "").trim().toLowerCase();
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase();
 
     if (
         normalized === "income" ||
@@ -608,7 +606,8 @@ function normalizeMoveTsActType(value) {
  * @returns {"expense" | "income" | ""} Определённый тип акта.
  */
 function inferMoveTsActTypeFromLocation(fromLocation) {
-    const normalizedLocation = normalizeMoveTsString(fromLocation).toLowerCase();
+    const normalizedLocation =
+        normalizeMoveTsString(fromLocation).toLowerCase();
     if (!normalizedLocation) return "";
 
     return normalizedLocation === "сц бти" ? "expense" : "income";
@@ -658,7 +657,9 @@ function getMoveTsActLetter(actType) {
  * @returns {"new" | "existing" | "manual" | ""} Нормализованный режим.
  */
 function normalizeMoveTsActAssignmentMode(value) {
-    const normalized = String(value || "").trim().toLowerCase();
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase();
 
     if (normalized === "new") return "new";
     if (normalized === "existing") return "existing";
@@ -707,7 +708,8 @@ async function getRegionNumberByRequestNumberSafe(requestNumber) {
     const zayavki = await fetchZayavkiSafe();
     const zayavka = zayavki.find(
         (item) =>
-            normalizeMoveTsString(item?.request_number) === normalizedRequestNumber,
+            normalizeMoveTsString(item?.request_number) ===
+            normalizedRequestNumber,
     );
 
     const directRegionNumber =
@@ -742,7 +744,8 @@ async function generateMoveTsActNumberSafe({
         throw new Error("Не указан тип акта");
     }
 
-    const regionNumber = await getRegionNumberByRequestNumberSafe(requestNumber);
+    const regionNumber =
+        await getRegionNumberByRequestNumberSafe(requestNumber);
     if (!regionNumber) {
         throw new Error("Не удалось определить номер региона для акта");
     }
@@ -859,9 +862,7 @@ async function buildMoveTsUpdatePayload(body = {}, currentItem = null) {
             });
         } catch (error) {
             return {
-                error:
-                    error?.message ||
-                    "Не удалось сформировать номер акта",
+                error: error?.message || "Не удалось сформировать номер акта",
             };
         }
     }
@@ -933,7 +934,9 @@ async function deleteMoveTsByIdSafe(id) {
     const candidates = ["move_ts", "movee_ts"];
 
     for (const collectionName of candidates) {
-        const deleted = await db.collection(collectionName).findOneAndDelete(query);
+        const deleted = await db
+            .collection(collectionName)
+            .findOneAndDelete(query);
         if (deleted) {
             return deleted;
         }
@@ -1046,7 +1049,9 @@ function normalizeUrgency(value) {
  * @returns {string} Каноническое значение основания или пустая строка.
  */
 function normalizeRequestBasis(value) {
-    const normalized = String(value || "").trim().toLowerCase();
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase();
     const match = REQUEST_BASIS_OPTIONS.find(
         (item) => item.toLowerCase() === normalized,
     );
@@ -1061,7 +1066,9 @@ function normalizeRequestBasis(value) {
  * @returns {string} Каноническое значение типа решения или пустая строка.
  */
 function normalizeDecisionKind(value) {
-    const normalized = String(value || "").trim().toLowerCase();
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase();
     const match = DECISION_KIND_OPTIONS.find(
         (item) => item.toLowerCase() === normalized,
     );
@@ -1485,11 +1492,13 @@ async function updateZayavkaByRequestNumberSafe(requestNumber, updateData) {
     const collections = ["zayavki", "zayavka", "zayavkas", "notes", "note"];
 
     for (const collectionName of collections) {
-        const result = await db.collection(collectionName).findOneAndUpdate(
-            { request_number: normalizedRequestNumber },
-            { $set: updateData },
-            { returnDocument: "after" },
-        );
+        const result = await db
+            .collection(collectionName)
+            .findOneAndUpdate(
+                { request_number: normalizedRequestNumber },
+                { $set: updateData },
+                { returnDocument: "after" },
+            );
         const updatedDoc = result?.value || result || null;
         if (updatedDoc && updatedDoc._id) {
             return {
@@ -1711,7 +1720,9 @@ app.delete("/move-ts/:id", authMiddleware, async (req, res) => {
             });
         }
 
-        const deletedRequestNumber = String(deleted.request_number || "").trim();
+        const deletedRequestNumber = String(
+            deleted.request_number || "",
+        ).trim();
         if (deletedRequestNumber) {
             await resetZayavkaDecisionByRequestNumberSafe(deletedRequestNumber);
         }
@@ -2044,8 +2055,7 @@ app.patch("/zayavki/:id", authMiddleware, async (req, res) => {
             !String(contact_person || "").trim()
         ) {
             return res.status(400).json({
-                message:
-                    "Не заполнены обязательные поля для редактирования",
+                message: "Не заполнены обязательные поля для редактирования",
             });
         }
 
@@ -2113,8 +2123,7 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
 
         if (!decision_date) {
             return res.status(400).json({
-                message:
-                    "Поле 'Дата решения' обязательно",
+                message: "Поле 'Дата решения' обязательно",
             });
         }
 
@@ -2139,7 +2148,10 @@ app.patch("/zayavki/:id/decision", authMiddleware, async (req, res) => {
         } else {
             const normalizedDecisionKind = normalizeDecisionKind(decision_kind);
 
-            if (!normalizedDecisionKind || normalizedDecisionKind === "supplement") {
+            if (
+                !normalizedDecisionKind ||
+                normalizedDecisionKind === "supplement"
+            ) {
                 return res.status(400).json({
                     message: "Выберите вид ремонта",
                 });
@@ -2313,36 +2325,41 @@ app.get("/ksa", authMiddleware, async (req, res) => {
 });
 
 async function main() {
-    app.listen(PORT, () => {
-        console.log(`Сервер запущен на порту ${PORT}`);
-    });
+    let connected = false;
 
     try {
         await mongoose.connect(MONGO_URI, MONGO_CONNECT_OPTIONS);
         console.log("[Mongo] connected");
+        connected = true;
     } catch (primaryError) {
-        console.error(
-            "[Mongo] primary connect failed:",
-            primaryError.message,
-        );
+        console.error("[Mongo] primary connect failed:", primaryError.message);
 
-        if (MONGO_URI === FALLBACK_LOCAL_URI) {
-            return;
-        }
-
-        try {
-            console.log("[Mongo] trying fallback local uri...");
-            await mongoose.connect(FALLBACK_LOCAL_URI, MONGO_CONNECT_OPTIONS);
-            console.log("[Mongo] connected to fallback local uri");
-        } catch (fallbackError) {
-            console.error(
-                "[Mongo] fallback connect failed:",
-                fallbackError.message,
-            );
+        if (MONGO_URI !== FALLBACK_LOCAL_URI) {
+            try {
+                console.log("[Mongo] trying fallback local uri...");
+                await mongoose.connect(
+                    FALLBACK_LOCAL_URI,
+                    MONGO_CONNECT_OPTIONS,
+                );
+                console.log("[Mongo] connected to fallback local uri");
+                connected = true;
+            } catch (fallbackError) {
+                console.error(
+                    "[Mongo] fallback connect failed:",
+                    fallbackError.message,
+                );
+            }
         }
     }
+
+    if (!connected) {
+        console.error("[Mongo] could not connect to any MongoDB URI, exiting.");
+        process.exit(1);
+    }
+
+    app.listen(PORT, () => {
+        console.log(`Сервер запущен на порту ${PORT}`);
+    });
 }
 
 main();
-
-

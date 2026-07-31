@@ -17,7 +17,7 @@ async function region() {
         // Подключаемся к серверу
         await mongoClient.connect();
         // обращаемся к базе данных admin
-        const db = mongoClient.db("zayzvki");
+        const db = mongoClient.db("zayavki");
         //получение коллекции
         const collection = await db.collection("region");
         const region = await collection.find({}).toArray();
