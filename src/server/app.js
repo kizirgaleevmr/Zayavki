@@ -47,9 +47,7 @@ function ensureMongoDbName(uri, dbName) {
         : `${baseNoSlash}/${dbName}`;
 }
 
-// const MONGO_URI = ensureMongoDbName(MONGO_URI_RAW, DEFAULT_DB_NAME);
-const MONGO_URI =
-    "mongodb+srv://mkrmarsel_db_user:gikfot-zefgoj-jokZi0@cluster0.pjyi7kq.mongodb.net/?appName=Cluster0";
+const MONGO_URI = ensureMongoDbName(MONGO_URI_RAW, DEFAULT_DB_NAME);
 const rawClientOrigin = process.env.CLIENT_ORIGIN || "";
 const allowedOrigins = rawClientOrigin
     .split(",")
