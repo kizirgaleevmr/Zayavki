@@ -2330,44 +2330,60 @@ app.get("/ksa", authMiddleware, async (req, res) => {
     return ksa;
 });
 
-async function main() {
-    let connected = false;
+const RECONNECT_INTERVAL_MS = 30000;
+let connected = false;
+
+async function connectMongo() {
+    if (connected) {
+        return;
+    }
 
     console.log("[Mongo] using MONGO_URI:", MONGO_URI);
 
     try {
         await mongoose.connect(MONGO_URI, MONGO_CONNECT_OPTIONS);
-        console.log("[Mongo] connected");
         connected = true;
+        console.log("[Mongo] connected");
+        return;
     } catch (primaryError) {
         console.error("[Mongo] primary connect failed:", primaryError.message);
+    }
 
-        if (MONGO_URI !== FALLBACK_LOCAL_URI) {
-            try {
-                console.log("[Mongo] trying fallback local uri...");
-                await mongoose.connect(
-                    FALLBACK_LOCAL_URI,
-                    MONGO_CONNECT_OPTIONS,
-                );
-                console.log("[Mongo] connected to fallback local uri");
-                connected = true;
-            } catch (fallbackError) {
-                console.error(
-                    "[Mongo] fallback connect failed:",
-                    fallbackError.message,
-                );
-            }
+    if (MONGO_URI !== FALLBACK_LOCAL_URI) {
+        try {
+            console.log("[Mongo] trying fallback local uri...");
+            await mongoose.connect(FALLBACK_LOCAL_URI, MONGO_CONNECT_OPTIONS);
+            connected = true;
+            console.log("[Mongo] connected to fallback local uri");
+            return;
+        } catch (fallbackError) {
+            console.error(
+                "[Mongo] fallback connect failed:",
+                fallbackError.message,
+            );
         }
     }
 
-    if (!connected) {
-        console.error("[Mongo] could not connect to any MongoDB URI, exiting.");
-        process.exit(1);
-    }
+    console.error(
+        "[Mongo] could not connect to any MongoDB URI. Server remains running, retrying in",
+        RECONNECT_INTERVAL_MS / 1000,
+        "seconds.",
+    );
+    setTimeout(connectMongo, RECONNECT_INTERVAL_MS);
+}
 
+mongoose.connection.on("disconnected", () => {
+    connected = false;
+    console.error("[Mongo] connection lost, retrying...");
+    setTimeout(connectMongo, RECONNECT_INTERVAL_MS);
+});
+
+async function main() {
     app.listen(PORT, () => {
         console.log(`Сервер запущен на порту ${PORT}`);
     });
+
+    await connectMongo();
 }
 
 main();
