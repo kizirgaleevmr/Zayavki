@@ -17,6 +17,7 @@ app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 const PORT = Number(process.env.PORT) || 3002;
+const SERVER_HOST = process.env.SERVER_HOST || "0.0.0.0";
 const DEFAULT_DB_NAME = "zayavki";
 const MONGO_URI_RAW = process.env.ATLAS_URI || "mongodb://localhost:27017/";
 const FALLBACK_LOCAL_URI = "mongodb://localhost:27017/";
@@ -60,7 +61,9 @@ const allowedOrigins = rawClientOrigin
  * @returns {boolean} `true`, если origin считается безопасным для разработки.
  */
 function isAllowedDevOrigin(origin) {
-    return /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+    return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(
+        origin,
+    );
 }
 
 app.use(
@@ -2376,8 +2379,8 @@ mongoose.connection.on("disconnected", () => {
 });
 
 async function main() {
-    app.listen(PORT, () => {
-        console.log(`Сервер запущен на порту ${PORT}`);
+    app.listen(PORT, SERVER_HOST, () => {
+        console.log(`Сервер запущен на ${SERVER_HOST}:${PORT}`);
     });
 
     await connectMongo();
