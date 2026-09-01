@@ -4,7 +4,7 @@ require("dotenv").config({ path: "./config.env" });
  * Подключение к базе
  */
 async function connectDB() {
-    const Db = process.env.ATLAS_URI;
+    const Db = process.env.ATLAS_URI || "mongodb://localhost:27017/";
     // создаем объект MongoClient и передаем ему строку подключения
     const mongoClient = new MongoClient(Db);
     try {

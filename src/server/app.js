@@ -18,9 +18,8 @@ app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 const PORT = Number(process.env.PORT) || 3002;
 const DEFAULT_DB_NAME = "zayavki";
-const MONGO_URI_RAW =
-    process.env.ATLAS_URI || "mongodb://127.0.0.1:27017/zayavki";
-const FALLBACK_LOCAL_URI = "mongodb://127.0.0.1:27017/zayavki";
+const MONGO_URI_RAW = process.env.ATLAS_URI || "mongodb://localhost:27017/";
+const FALLBACK_LOCAL_URI = "mongodb://localhost:27017/";
 const MONGO_CONNECT_OPTIONS = {
     serverSelectionTimeoutMS: 5000,
 };

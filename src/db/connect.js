@@ -8,7 +8,7 @@ import { MongoClient } from "mongodb";
  * асинхронная функция для получение данных регион
  */
 async function region() {
-    const url = "mongodb://marsel:4HDus8bl@localhost:27017/";
+    const url = "mongodb://localhost:27017/";
 
     // создаем объект MongoClient и передаем ему строку подключения
     const mongoClient = new MongoClient(url);
